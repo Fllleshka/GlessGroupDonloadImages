@@ -1,7 +1,6 @@
 import datetime
 import time
 import os
-import shutil
 from PIL import Image
 from ftplib import FTP
 import shutil
@@ -276,7 +275,7 @@ def scanfolderforimages():
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    timetoScan = datetime.time(16, 00).strftime("%H:%M")
+    timetoScan = datetime.time(16, 13).strftime("%H:%M")
 
 def switcher(argument):
     match argument:
@@ -285,7 +284,10 @@ def switcher(argument):
             scanfilesinlocalserver()
             scanfilesinremoteserver()
             comparisonlists()
-            times.timetoScan = (datetime.datetime.today() + datetime.timedelta(hours = 1)).strftime("%H:%M")
+            nexthour = datetime.datetime.today().hour + 1
+            if nexthour == 24:
+                nexthour = 0
+            times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее вермя проверки:\t", times.timetoScan)
         case default:
             return print("Время сейчас:\t",argument)
