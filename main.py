@@ -5,12 +5,15 @@ from PIL import Image
 from ftplib import FTP
 import shutil
 
+from dates import *
+
 masslocalfirst = []
 masslocalsecond = []
 masslocalthird = []
 masslocalfourth = []
 masslocalfifth = []
 
+# Функция формирования путей до папок на сервере картинок
 def scanfilesinlocalserver():
     global masslocalfirst
     global masslocalsecond
@@ -22,7 +25,7 @@ def scanfilesinlocalserver():
     mainpath = '//192.168.20.215/фото товара'
     # Пробегаемся по массиву
     for element in os.listdir(mainpath):
-        # Формируем поуть к папке
+        # Формируем поуть к папкам
         pathfolder = mainpath + "/" + element
         match element:
             case "1":
@@ -49,18 +52,22 @@ massremotethird = []
 massremotefourth = []
 massremotefifth = []
 
+# Фукнкция сканируемых данных на удалённом сервере
 def scanfilesinremoteserver():
     global massremotefirst
     global massremotesecond
     global massremotethird
     global massremotefourth
     global massremotefifth
-    ftp = FTP('gless.group')
-    result = ftp.login('mazda_import', '{(U9Av74{Dn?')
+    # Данные для связи с удалённым сервером
+    ftp = FTP(nameSite)
+    ftp.login(ftpLogin, ftpPass)
+    # Получаем данные о том какие данные есть на удалённом сервере
     listalldirectors = ftp.nlst()
     listdirectors = []
     for element in listalldirectors:
         match element:
+            # Первая папка для синхронизации
             case "1":
                 listdirectors.append(int(element))
                 path = "/" + str(element) + "/"
@@ -70,6 +77,7 @@ def scanfilesinremoteserver():
                 list.pop(0)
                 list.sort()
                 massremotefirst = list
+            # Вторая папка для синхронизации
             case "2":
                 listdirectors.append(int(element))
                 path = "/" + str(element) + "/"
@@ -79,6 +87,7 @@ def scanfilesinremoteserver():
                 list.pop(0)
                 list.sort()
                 massremotesecond = list
+            # Третья папка для синхронизации
             case "3":
                 listdirectors.append(int(element))
                 path = "/" + str(element) + "/"
@@ -88,6 +97,7 @@ def scanfilesinremoteserver():
                 list.pop(0)
                 list.sort()
                 massremotethird = list
+            # Четвёртая папка для синхронизации
             case "4":
                 listdirectors.append(int(element))
                 path = "/" + str(element) + "/"
@@ -97,6 +107,7 @@ def scanfilesinremoteserver():
                 list.pop(0)
                 list.sort()
                 massremotefourth = list
+            # Пятая папка для синхронизации
             case "5":
                 listdirectors.append(int(element))
                 path = "/" + str(element) + "/"
@@ -110,6 +121,7 @@ def scanfilesinremoteserver():
                 continue
     listdirectors.sort()
 
+# Проверка на разность данных в локальных папках и на удалённом сервере
 def comparisonlists():
     # Первая папка
     result = list(set(masslocalfirst) - set(massremotefirst))
@@ -151,6 +163,7 @@ def comparisonlists():
         print("Разность пятых папкок: ", result)
         uploadfiles(5, result)
 
+# Функция получения размера изображения
 def get_size_format(b, factor=1024, suffix="B"):
     """
     Scale bytes to its proper byte format
@@ -164,6 +177,7 @@ def get_size_format(b, factor=1024, suffix="B"):
         b /= factor
     return f"{b:.2f}Y{suffix}"
 
+# Функция конвертации изображения (уменьшения веса и подгонка под заданные параметры)
 def convertimage(path):
     # Размеры изображения на выходе
     width = 1920
@@ -190,10 +204,10 @@ def convertimage(path):
     # Печатаем в кносоль результат
     print(path, "с шириной, высотой: ", olddimensions, " и размером: ", oldsize, "была преобразована в: ", newdimesions , " и ", newsize)
 
+# Переименование и перемещение картинки по необходимому локальному пути
 def renameanduploadimage(pathimage, folder):
     # Начинаем с переименования картинки
     numberfolderfirst = str(pathimage)[53:]
-    #print("numberfolderfirst:", numberfolderfirst)
     # Если папка четырёхзначная
     if numberfolderfirst[4] == "/":
         numberfoldersecond = str(numberfolderfirst)[:4]
@@ -201,35 +215,30 @@ def renameanduploadimage(pathimage, folder):
         numberfoldersecond = str(numberfolderfirst)[:3]
     else:
         numberfoldersecond = str(numberfolderfirst)[:5]
-    #print("\tСтарный путь к картинке: \t", pathimage)
     # Название картинки
     namepic = numberfoldersecond + str(pathimage)[-4:]
-    #print("\tНазвание картинки: \t", namepic)
     # Новый путь к картинке
     convertname = str(pathimage)[:53] + numberfoldersecond + "/" + namepic
-    #print("\tНовый путь к картинке: \t\t", convertname)
     # Переименование картинки
     os.rename(pathimage, convertname)
-    #print("Переименование завершено")
 
     # Начинаем загрузку фотографии по необходимому местоположению
     newpathfile = str(pathimage)[:29] + str(folder) + "/" + namepic
-    newlocation = shutil.move(convertname, newpathfile)
-    #print("Загружено: \t", newlocation)
+    shutil.move(convertname, newpathfile)
 
 def uploadfiles(numberfolder, result):
     # Главный путь к папкам
     mainpath = '//192.168.20.215/фото товара/'
     pathtofolder = mainpath + str(numberfolder) + "/"
-    listphotos = os.listdir(pathtofolder)
 
-    ftp = FTP('gless.group')
-    ftp.login('mazda_import', '{(U9Av74{Dn?')
+    # Подключение к удалённому серверу по FTP
+    ftp = FTP(nameSite)
+    ftp.login(ftpLogin, ftpPass)
     ftppath = "/" + str(numberfolder) + "/"
     ftp.cwd(ftppath)
 
+    # Перебираем элекменты
     for element in result:
-        path = pathtofolder + element
         if element == "Thumbs.db":
             continue
         else:
@@ -275,7 +284,7 @@ def scanfolderforimages():
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    timetoScan = datetime.time(16, 13).strftime("%H:%M")
+    timetoScan = datetime.time(18, 0).strftime("%H:%M")
 
 def switcher(argument):
     match argument:
