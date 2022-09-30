@@ -250,6 +250,7 @@ def uploadfiles(numberfolder, result):
     print("Синхронизация папки ", numberfolder, " завершена.")
     ftp.quit()
 
+
 def scanfolderforimages():
     # Путь к главной папке
     mainpath = '//192.168.20.215/фото товара/фото товара для разбора'
@@ -258,34 +259,54 @@ def scanfolderforimages():
         print("\tДанные по импорту фотографий из папки для разбора отсутствуют")
     else:
         for element in list:
-            pathfolder = mainpath + "/" + element
-            nextlist = os.listdir(pathfolder)
-            #print(pathfolder, "\t", nextlist)
-            # Если папка пуста то пишем о пустой папке
-            if nextlist == []:
-                print("\t Папка ", element, " пуста")
+            # Обыгрывание Thumbs.db решение удалить пока не найдено(
+            if element == "Thumbs.db":
+                path = mainpath + "/" + element
+                try:
+                    if os.access(path, os.R_OK and os.X_OK):
+                        os.remove(path)
+                except PermissionError:
+                    pass
             else:
-                numberfolder = 1
-                for elem in nextlist:
-                    if elem == "Thumbs.db":
-                        continue
-                    else:
-                        #print("Работаю с", elem)
-                        pathimage = pathfolder + "/" + elem
-                        convertimage(pathimage)
-                        renameanduploadimage(pathimage, numberfolder)
-                        numberfolder = numberfolder + 1
+                pathfolder = mainpath + "/" + element
+                nextlist = os.listdir(pathfolder)
+                #print(pathfolder, "\t", nextlist)
+                # Если папка пуста то пишем о пустой папке
+                if nextlist == []:
+                    print("\t Папка ", element, " пуста")
+                else:
+                    numberfolder = 1
+                    for elem in nextlist:
+                        if elem == "Thumbs.db":
+                            continue
+                        else:
+                            #print("Работаю с", elem)
+                            pathimage = pathfolder + "/" + elem
+                            convertimage(pathimage)
+                            renameanduploadimage(pathimage, numberfolder)
+                            numberfolder = numberfolder + 1
     # После окончания загрузки фотографий по папкам удаляем папку
     for elem in list:
-        path = mainpath + "/" + elem
-        shutil.rmtree(path)
+        # Обыгрывание Thumbs.db решение удалить пока не найдено(
+        if element == "Thumbs.db":
+            path = mainpath + "/" + element
+            try:
+                if os.access(path, os.R_OK and os.X_OK):
+                    os.remove(path)
+            except PermissionError:
+                pass
+        else:
+            path = mainpath + "/" + elem
+            shutil.rmtree(path)
     print("Удаление папок завершено")
 
+# Класс времён
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    timetoScan = datetime.time(18, 0).strftime("%H:%M")
+    timetoScan = datetime.time(15, 3).strftime("%H:%M")
 
+# Функция выбора действия от времени
 def switcher(argument):
     match argument:
         case times.timetoScan:
@@ -301,6 +322,7 @@ def switcher(argument):
         case default:
             return print("Время сейчас:\t",argument)
 
+# Вечный цикл с таймеров 60 секунд
 while True:
     # Время сейчас
     today = datetime.datetime.today()
