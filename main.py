@@ -226,6 +226,7 @@ def renameanduploadimage(pathimage, folder):
     newpathfile = str(pathimage)[:29] + str(folder) + "/" + namepic
     shutil.move(convertname, newpathfile)
 
+# Функция загрузки фотографий на сервер
 def uploadfiles(numberfolder, result):
     # Главный путь к папкам
     mainpath = '//192.168.20.215/фото товара/'
@@ -237,7 +238,7 @@ def uploadfiles(numberfolder, result):
     ftppath = "/" + str(numberfolder) + "/"
     ftp.cwd(ftppath)
 
-    # Перебираем элекменты
+    # Перебираем элементы
     for element in result:
         if element == "Thumbs.db":
             continue
@@ -250,7 +251,7 @@ def uploadfiles(numberfolder, result):
     print("Синхронизация папки ", numberfolder, " завершена.")
     ftp.quit()
 
-
+# Функция папки с фотографиями для разбора и сортировка их по необходимым папкам с нужными номерами
 def scanfolderforimages():
     # Путь к главной папке
     mainpath = '//192.168.20.215/фото товара/фото товара для разбора'
@@ -270,7 +271,6 @@ def scanfolderforimages():
             else:
                 pathfolder = mainpath + "/" + element
                 nextlist = os.listdir(pathfolder)
-                #print(pathfolder, "\t", nextlist)
                 # Если папка пуста то пишем о пустой папке
                 if nextlist == []:
                     print("\t Папка ", element, " пуста")
@@ -280,7 +280,6 @@ def scanfolderforimages():
                         if elem == "Thumbs.db":
                             continue
                         else:
-                            #print("Работаю с", elem)
                             pathimage = pathfolder + "/" + elem
                             convertimage(pathimage)
                             renameanduploadimage(pathimage, numberfolder)
@@ -304,7 +303,7 @@ def scanfolderforimages():
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    timetoScan = datetime.time(15, 3).strftime("%H:%M")
+    timetoScan = datetime.datetime.today().time().strftime("%H:%M")
 
 # Функция выбора действия от времени
 def switcher(argument):
