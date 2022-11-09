@@ -280,10 +280,14 @@ def scanfolderforimages():
                         if elem == "Thumbs.db":
                             continue
                         else:
-                            pathimage = pathfolder + "/" + elem
-                            convertimage(pathimage)
-                            renameanduploadimage(pathimage, numberfolder)
-                            numberfolder = numberfolder + 1
+                            # Условие перебора количества фотографий, так как 6 папки нету
+                            if numberfolder >= 6:
+                                break
+                            else:
+                                pathimage = pathfolder + "/" + elem
+                                convertimage(pathimage)
+                                renameanduploadimage(pathimage, numberfolder)
+                                numberfolder = numberfolder + 1
     # После окончания загрузки фотографий по папкам удаляем папку
     for elem in list:
         # Обыгрывание Thumbs.db решение удалить пока не найдено(
@@ -321,7 +325,7 @@ def switcher(argument):
         case default:
             return print("Время сейчас:\t",argument)
 
-# Вечный цикл с таймеров 60 секунд
+# Вечный цикл с таймером 60 секунд
 while True:
     # Время сейчас
     today = datetime.datetime.today()
