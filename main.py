@@ -1,11 +1,10 @@
-import datetime
 import time
 import os
 from PIL import Image
 from ftplib import FTP
 import shutil
-
 from dates import *
+from helperscripts import *
 
 masslocalfirst = []
 masslocalsecond = []
@@ -25,7 +24,7 @@ def scanfilesinlocalserver():
     mainpath = '//192.168.20.215/фото товара'
     # Пробегаемся по массиву
     for element in os.listdir(mainpath):
-        # Формируем поуть к папкам
+        # Формируем путь к папкам
         pathfolder = mainpath + "/" + element
         match element:
             case "1":
@@ -303,11 +302,21 @@ def scanfolderforimages():
             shutil.rmtree(path)
     print("Удаление папок завершено")
 
+# Функция изменения Call центра
+def changecallcenter():
+    print("Я функция изменения call-центра")
+    pathfile = u"//192.168.20.215/сетевой диск2/График взаимодействия/График 2022 ТЕСТ.xlsx"
+    password = "888"
+    datesnowmonth = importdatesformexcel(pathfile, password)
+    chosedates(datesnowmonth)
+
 # Класс времён
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    timetoScan = datetime.datetime.today().time().strftime("%H:%M")
+    timetoScan = today.time().strftime("%H:%M")
+    timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
+    #importdatesfromexcel = datetime.datetime.today().time().strftime("%H:%M")
 
 # Функция выбора действия от времени
 def switcher(argument):
@@ -322,6 +331,7 @@ def switcher(argument):
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее вермя проверки:\t", times.timetoScan)
+            changecallcenter()
         case default:
             return print("Время сейчас:\t",argument)
 
