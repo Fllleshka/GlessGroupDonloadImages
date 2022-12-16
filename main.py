@@ -3,7 +3,6 @@ import os
 from PIL import Image
 from ftplib import FTP
 import shutil
-from dates import *
 from helperscripts import *
 
 masslocalfirst = []
@@ -305,18 +304,16 @@ def scanfolderforimages():
 # Функция изменения Call центра
 def changecallcenter():
     print("Я функция изменения call-центра")
-    pathfile = u"//192.168.20.215/сетевой диск2/График взаимодействия/График 2022 ТЕСТ.xlsx"
-    password = "888"
     datesnowmonth = importdatesformexcel(pathfile, password)
-    chosedates(datesnowmonth)
+    massive = chosedates(datesnowmonth)
+    result = selectmenegers(massive)
+    print(result)
 
 # Класс времён
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
     timetoScan = today.time().strftime("%H:%M")
-    timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
-    #importdatesfromexcel = datetime.datetime.today().time().strftime("%H:%M")
 
 # Функция выбора действия от времени
 def switcher(argument):
@@ -331,14 +328,15 @@ def switcher(argument):
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее вермя проверки:\t", times.timetoScan)
-            changecallcenter()
+            #changecallcenter()
+            createnewarrowinlogs()
         case default:
             return print("Время сейчас:\t",argument)
 
-# Вечный цикл с таймером 60 секунд
+# Вечный цикл с таймером 30 секунд
 while True:
     # Время сейчас
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M")
     switcher(todaytime)
-    time.sleep(60)
+    time.sleep(30)

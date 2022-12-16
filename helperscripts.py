@@ -1,5 +1,10 @@
 import datetime
+import requests
 import win32com.client
+import httplib2
+# Импорт баблиотеки для работы в APIGoogle
+import gspread
+from dates import *
 
 # Функция импорта данных из Excel
 def importdatesformexcel(path, password):
@@ -11,7 +16,7 @@ def importdatesformexcel(path, password):
     sheet = xlwb.ActiveSheet
     # Выбираем данные из range
     alldates = sheet.Range("B1:B451")
-
+    #print(alldates)
     # Выясняем текущий мясяц
     today = datetime.datetime.today()
     todayyear = int(today.strftime("%Y"))
@@ -27,7 +32,7 @@ def importdatesformexcel(path, password):
     # Ищем стартовую ячейку, для определения графика на этот месяц
     index = 0
     indexmonth = 0
-    # Перебираем все элекменты и находим нужную ячейку с текущим месяцем
+    # Перебираем все элементы и находим нужную ячейку с текущим месяцем
     for element in alldates:
         index = index + 1
         #print("[" + str(element) + "]\t", index)
@@ -49,7 +54,6 @@ def importdatesformexcel(path, password):
     listdatesforsolution = []
     for element in datesforsolution:
         listdatesforsolution.append(str(element))
-
     # Закрываем фаил
     xlwb.Close()
     # Закрываем COM обьект
@@ -60,43 +64,107 @@ def importdatesformexcel(path, password):
 
 # Функция для выбоки по данным
 def chosedates(dates):
-
     # Удаляем первый элемент
     del dates[0]
-    print(dates)
+    #print("Изначальный массив:")
+    #print("\t", dates)
 
+    # Считаем дни в месяце
     index = 0
     for element in dates:
         index = index + 1
-        if element == "None":
+        if element == "None" or element == "Торговля":
             # Определяем количество дней в месяце
             countdaysinmonth = index - 1
             break
-    print (countdaysinmonth)
+    #print("Дней в месяце: ", countdaysinmonth)
 
-    # Считаем ненужные данные
-    deldates = 1 + countdaysinmonth + 1 + countdaysinmonth + 1
-    print(deldates)
     # Удаляем ненужные данные
-    index = 0
     for element in dates:
-        del dates[0]
-        index = index + 1
-        if index == deldates:
-            break
-    print(dates)
+        if element == massmanagers[0]:
+            delelements = dates.index(element)
+    del dates[0:delelements]
+    #print("\t", dates)
 
-    managers_list = []
-    index = 0
+    # Разбиваем массив для конкретизации графика каждого менеджера
+    managerlists = []
+    lenmanagers = len(massmanagers)-1
+    #print("Количество менеджеров: ", lenmanagers)
+    for i in range(0, lenmanagers):
+        managerlist = []
+        index = 0
+        for element in dates:
+            managerlist.append(element)
+            index = index + 1
+            if index == countdaysinmonth + 1:
+                break
+        #print(managerlist)
+        managerlists.append(managerlist)
+        del dates[0:countdaysinmonth + 1]
+
+    # Выясняем график работы ПП
+    deldates = 32*8
+    # Удаляем ненужные данные
+    del dates[0:deldates]
+    #print(dates)
+    # Добавляем в массив работников данные
     managerlist = []
+    index = 0
     for element in dates:
-        index = index + 1
         managerlist.append(element)
-        if index == 32:
+        index = index + 1
+        if index == countdaysinmonth + 1:
             break
-    managers_list.append(managerlist)
+    managerlists.append(managerlist)
 
+    return managerlists
+
+# Функция активирования менеджеров
+def selectmenegers(managerlists):
     # Выясняем текущй день
     today = datetime.datetime.today()
-    todatday = today.strftime("%d")
-    print(todatday)
+    todayday = int(today.strftime("%d"))
+    print("Сегодня:", todayday, today.strftime("%B") ,int(today.strftime("%Y")))
+    flag = True
+    # Изменяем статусы менеджеров call центра
+    for element in managerlists:
+        if element[todayday] != "В":
+            numbermanager = numbermanagers[massmanagers.index(element[0])]
+            print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager, "'")
+            urlforapi = urlapi + str(numbermanager) + '/agent'
+            statusrequest = requests.put(urlforapi, params = paramsonline, headers = headers)
+            if statusrequest == "<Response [403]>":
+                flag = False
+                print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+            else:
+                statusget = requests.get(urlforapi, headers=headers).text
+                print("\tСтатус менеджера: ", element[0], " = ", statusget)
+        else:
+            numbermanager = numbermanagers[massmanagers.index(element[0])]
+            print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager, "'")
+            urlforapi = urlapi + str(numbermanager) + '/agent'
+            statusrequest = requests.put(urlforapi, params = paramoffline, headers = headers)
+            if statusrequest == "<Response [403]>":
+                flag = False
+                print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+            else:
+                statusget = requests.get(urlforapi, headers=headers).text
+                print("\tСтатус менеджера: ", element[0], " = ", statusget)
+    if flag == True:
+        return "\tCall центр успешно настроен."
+    else:
+        return "\tВ работе функции произошла ошибка"
+
+# Функция записи логов
+def createnewarrowinlogs():
+    gc = gspread.service_account(CREDENTIALS_FILE)
+    table = gc.open_by_key('1sb_dRuGqokJRhXmZ1IaajyQi8_-c-QJL5zvSpSv-Azg')
+    tableUrl = table.url
+    print(tableUrl)
+    #Заходим в таблицу комиксов
+    #cread_file = "token.json"
+    #gc = gspread.service_account(cread_file)
+    #table = gc.open(name_sheet)
+    #worksheet = table.worksheet("Лист1")
+    #dates = worksheet.get_all_records()
+    #worksheet = table.worksheet("LogsPhotos")
