@@ -257,6 +257,8 @@ def scanfolderforimages():
     if list == []:
         print("\tДанные по импорту фотографий из папки для разбора отсутствуют")
     else:
+        lenphotos = len(list)
+        createnewarrowinlogs(lenphotos)
         for element in list:
             # Обыгрывание Thumbs.db решение удалить пока не найдено(
             if element == "Thumbs.db":
@@ -286,20 +288,20 @@ def scanfolderforimages():
                                 convertimage(pathimage)
                                 renameanduploadimage(pathimage, numberfolder)
                                 numberfolder = numberfolder + 1
-    # После окончания загрузки фотографий по папкам удаляем папку
-    for elem in list:
-        # Обыгрывание Thumbs.db решение удалить пока не найдено(
-        if element == "Thumbs.db":
-            path = mainpath + "/" + element
-            try:
-                if os.access(path, os.R_OK and os.X_OK):
-                    os.remove(path)
-            except PermissionError:
-                pass
-        else:
-            path = mainpath + "/" + elem
-            shutil.rmtree(path)
-    print("Удаление папок завершено")
+        # После окончания загрузки фотографий по папкам удаляем папку
+        for elem in list:
+            # Обыгрывание Thumbs.db решение удалить пока не найдено(
+            if element == "Thumbs.db":
+                path = mainpath + "/" + element
+                try:
+                    if os.access(path, os.R_OK and os.X_OK):
+                        os.remove(path)
+                except PermissionError:
+                    pass
+            else:
+                path = mainpath + "/" + elem
+                shutil.rmtree(path)
+        print("Удаление папок завершено")
 
 # Функция изменения Call центра
 def changecallcenter():
@@ -329,7 +331,7 @@ def switcher(argument):
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее вермя проверки:\t", times.timetoScan)
             #changecallcenter()
-            createnewarrowinlogs()
+            #createnewarrowinlogs()
         case default:
             return print("Время сейчас:\t",argument)
 

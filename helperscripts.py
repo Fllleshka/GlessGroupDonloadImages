@@ -155,16 +155,44 @@ def selectmenegers(managerlists):
     else:
         return "\tВ работе функции произошла ошибка"
 
-# Функция записи логов
-def createnewarrowinlogs():
+# Функция записи логов фотографий
+def createnewarrowinlogs(lenphotos):
+    # Подключаемся к сервисному аккаунту
     gc = gspread.service_account(CREDENTIALS_FILE)
-    table = gc.open_by_key('1sb_dRuGqokJRhXmZ1IaajyQi8_-c-QJL5zvSpSv-Azg')
-    tableUrl = table.url
-    print(tableUrl)
-    #Заходим в таблицу комиксов
-    #cread_file = "token.json"
-    #gc = gspread.service_account(cread_file)
-    #table = gc.open(name_sheet)
-    #worksheet = table.worksheet("Лист1")
-    #dates = worksheet.get_all_records()
-    #worksheet = table.worksheet("LogsPhotos")
+    # Подключаемся к таблице по ключу таблицы
+    table = gc.open_by_key(sheetkey)
+    # Открываем нужный лист
+    worksheet = table.worksheet("LogsPhotos")
+    # Получаем данные с листа
+    dates = worksheet.get_values()
+    # Получаем номер самой последней строки
+    newstr = len(worksheet.col_values(1)) + 1
+    # Вычисляем номер строки
+    newnumber = newstr - 1
+    # Определяем время выполения операции
+    today = datetime.datetime.today().strftime("%m.%d.%Y | %H:%M:%S")
+    # Добавляем строку в конец фаила логгирования
+    worksheet.update_cell(newstr, 1, newnumber)
+    worksheet.update_cell(newstr, 2, today)
+    worksheet.update_cell(newstr, 3, lenphotos)
+
+# Функция записи логов Call Cener
+def createnewarrowinlogs():
+    # Подключаемся к сервисному аккаунту
+    gc = gspread.service_account(CREDENTIALS_FILE)
+    # Подключаемся к таблице по ключу таблицы
+    table = gc.open_by_key(sheetkey)
+    # Открываем нужный лист
+    worksheet = table.worksheet("LogsCallCenter")
+    # Получаем данные с листа
+    dates = worksheet.get_values()
+    # Получаем номер самой последней строки
+    newstr = len(worksheet.col_values(1)) + 1
+    # Вычисляем номер строки
+    newnumber = newstr - 1
+    # Определяем время выполения операции
+    today = datetime.datetime.today().strftime("%m.%d.%Y | %H:%M:%S")
+    # Добавляем строку в конец фаила логгирования
+    worksheet.update_cell(newstr, 1, newnumber)
+    worksheet.update_cell(newstr, 2, today)
+    worksheet.update_cell(newstr, 3, )
