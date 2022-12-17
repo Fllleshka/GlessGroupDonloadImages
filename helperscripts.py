@@ -1,7 +1,6 @@
 import datetime
 import requests
 import win32com.client
-import httplib2
 # Импорт баблиотеки для работы в APIGoogle
 import gspread
 from dates import *
@@ -177,7 +176,7 @@ def createnewarrowinlogs(lenphotos):
     worksheet.update_cell(newstr, 3, lenphotos)
 
 # Функция записи логов Call Cener
-def createnewarrowinlogs():
+def createnewarrowincallcenter():
     # Подключаемся к сервисному аккаунту
     gc = gspread.service_account(CREDENTIALS_FILE)
     # Подключаемся к таблице по ключу таблицы
@@ -192,7 +191,17 @@ def createnewarrowinlogs():
     newnumber = newstr - 1
     # Определяем время выполения операции
     today = datetime.datetime.today().strftime("%m.%d.%Y | %H:%M:%S")
+    # Выясняем данные кто работает
+    managerslist = []
+    # Выясняем статусы менеджеров
+    for element in numbermanagers:
+        urlforapi = urlapi + element + '/agent'
+        status = requests.get(urlforapi, headers=headers).text
+        managerslist.append(status)
     # Добавляем строку в конец фаила логгирования
     worksheet.update_cell(newstr, 1, newnumber)
     worksheet.update_cell(newstr, 2, today)
-    worksheet.update_cell(newstr, 3, )
+    worksheet.update_cell(newstr, 3, managerslist[0])
+    worksheet.update_cell(newstr, 4, managerslist[1])
+    worksheet.update_cell(newstr, 5, managerslist[2])
+    worksheet.update_cell(newstr, 6, managerslist[3])

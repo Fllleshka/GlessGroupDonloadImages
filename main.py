@@ -309,6 +309,7 @@ def changecallcenter():
     datesnowmonth = importdatesformexcel(pathfile, password)
     massive = chosedates(datesnowmonth)
     result = selectmenegers(massive)
+    createnewarrowincallcenter()
     print(result)
 
 # Класс времён
@@ -330,8 +331,7 @@ def switcher(argument):
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее вермя проверки:\t", times.timetoScan)
-            #changecallcenter()
-            #createnewarrowinlogs()
+            changecallcenter()
         case default:
             return print("Время сейчас:\t",argument)
 
