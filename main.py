@@ -317,6 +317,7 @@ class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
     timetoScan = today.time().strftime("%H:%M")
+    timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
 
 # Функция выбора действия от времени
 def switcher(argument):
@@ -331,7 +332,15 @@ def switcher(argument):
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее вермя проверки:\t", times.timetoScan)
+        case times.timetoChangeCallCenter:
+            if times.timetoChangeCallCenter == "19:05":
+                times.timetoChangeCallCenter = datetime.time(8, 55).strftime("%H:%M")
+            elif times.timetoChangeCallCenter == "08:55":
+                times.timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
+            else:
+                print("Что то пошло не так в изменении времени...")
             changecallcenter()
+
         case default:
             return print("Время сейчас:\t",argument)
 

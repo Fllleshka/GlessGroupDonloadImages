@@ -183,14 +183,12 @@ def createnewarrowincallcenter():
     table = gc.open_by_key(sheetkey)
     # Открываем нужный лист
     worksheet = table.worksheet("LogsCallCenter")
-    # Получаем данные с листа
-    dates = worksheet.get_values()
     # Получаем номер самой последней строки
     newstr = len(worksheet.col_values(1)) + 1
     # Вычисляем номер строки
     newnumber = newstr - 1
     # Определяем время выполения операции
-    today = datetime.datetime.today().strftime("%m.%d.%Y | %H:%M:%S")
+    today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
     # Выясняем данные кто работает
     managerslist = []
     # Выясняем статусы менеджеров
