@@ -169,7 +169,7 @@ def createnewarrowinlogs(lenphotos):
     # Вычисляем номер строки
     newnumber = newstr - 1
     # Определяем время выполения операции
-    today = datetime.datetime.today().strftime("%m.%d.%Y | %H:%M:%S")
+    today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
     # Добавляем строку в конец фаила логгирования
     worksheet.update_cell(newstr, 1, newnumber)
     worksheet.update_cell(newstr, 2, today)

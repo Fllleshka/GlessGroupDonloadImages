@@ -10,6 +10,11 @@ masslocalsecond = []
 masslocalthird = []
 masslocalfourth = []
 masslocalfifth = []
+massremotefirst = []
+massremotesecond = []
+massremotethird = []
+massremotefourth = []
+massremotefifth = []
 
 # Функция формирования путей до папок на сервере картинок
 def scanfilesinlocalserver():
@@ -43,12 +48,6 @@ def scanfilesinlocalserver():
                 masslocalfifth.remove('Thumbs.db')
             case _:
                 continue
-
-massremotefirst = []
-massremotesecond = []
-massremotethird = []
-massremotefourth = []
-massremotefifth = []
 
 # Фукнкция сканируемых данных на удалённом сервере
 def scanfilesinremoteserver():
@@ -312,12 +311,26 @@ def changecallcenter():
     createnewarrowincallcenter()
     print(result)
 
+# Функция отключения всех в Call центре
+def offcallcenter():
+    print("Я функция полного отключения call-центра")
+    # Выясняем текущий день
+    today = datetime.datetime.today()
+    todayday = int(today.strftime("%w"))
+    if todayday == 3:
+        for element in numbermanagers:
+            urlforapi = urlapi + str(element) + '/agent'
+            requests.put(urlforapi, params = paramoffline, headers=headers)
+    else:
+        return
+
 # Класс времён
 class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
     timetoScan = today.time().strftime("%H:%M")
     timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
+    #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
 
 # Функция выбора действия от времени
 def switcher(argument):
