@@ -127,11 +127,12 @@ def selectmenegers(managerlists):
     flag = True
     # Изменяем статусы менеджеров call центра
     for element in managerlists:
-        if element[todayday] != "В":
+        if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О":
             numbermanager = numbermanagers[massmanagers.index(element[0])]
-            print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager, "'")
+            print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager,
+                  "'")
             urlforapi = urlapi + str(numbermanager) + '/agent'
-            statusrequest = requests.put(urlforapi, params = paramsonline, headers = headers)
+            statusrequest = requests.put(urlforapi, params=paramoffline, headers=headers)
             if statusrequest == "<Response [403]>":
                 flag = False
                 print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
@@ -140,9 +141,10 @@ def selectmenegers(managerlists):
                 print("\tСтатус менеджера: ", element[0], " = ", statusget)
         else:
             numbermanager = numbermanagers[massmanagers.index(element[0])]
-            print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager, "'")
+            print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager,
+                  "'")
             urlforapi = urlapi + str(numbermanager) + '/agent'
-            statusrequest = requests.put(urlforapi, params = paramoffline, headers = headers)
+            statusrequest = requests.put(urlforapi, params=paramsonline, headers=headers)
             if statusrequest == "<Response [403]>":
                 flag = False
                 print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")

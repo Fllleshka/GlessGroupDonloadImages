@@ -344,6 +344,7 @@ def switcher(argument):
             if nexthour == 24:
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
+            changecallcenter()
             print("Следующее вермя проверки:\t", times.timetoScan)
         case times.timetoChangeCallCenter:
             if times.timetoChangeCallCenter == "19:05":
@@ -353,7 +354,6 @@ def switcher(argument):
             else:
                 print("Что то пошло не так в изменении времени...")
             changecallcenter()
-
         case default:
             return print("Время сейчас:\t",argument)
 
