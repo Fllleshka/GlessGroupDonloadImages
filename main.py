@@ -1,9 +1,8 @@
-import time
-import os
-from PIL import Image
 from ftplib import FTP
 import shutil
 from helperscripts import *
+from threading import Thread
+import pythoncom
 
 masslocalfirst = []
 masslocalsecond = []
@@ -49,77 +48,47 @@ def scanfilesinlocalserver():
             case _:
                 continue
 
-# Фукнкция сканируемых данных на удалённом сервере
+# Функция сканируемых данных на удалённом сервере
 def scanfilesinremoteserver():
     global massremotefirst
     global massremotesecond
     global massremotethird
     global massremotefourth
     global massremotefifth
-    # Данные для связи с удалённым сервером
-    ftp = FTP(nameSite)
-    ftp.login(ftpLogin, ftpPass)
-    # Получаем данные о том какие данные есть на удалённом сервере
-    listalldirectors = ftp.nlst()
-    listdirectors = []
-    for element in listalldirectors:
-        match element:
-            # Первая папка для синхронизации
-            case "1":
-                listdirectors.append(int(element))
-                path = "/" + str(element) + "/"
-                ftp.cwd(path)
-                list = ftp.nlst()
-                list.pop(0)
-                list.pop(0)
-                list.sort()
-                massremotefirst = list
-            # Вторая папка для синхронизации
-            case "2":
-                listdirectors.append(int(element))
-                path = "/" + str(element) + "/"
-                ftp.cwd(path)
-                list = ftp.nlst()
-                list.pop(0)
-                list.pop(0)
-                list.sort()
-                massremotesecond = list
-            # Третья папка для синхронизации
-            case "3":
-                listdirectors.append(int(element))
-                path = "/" + str(element) + "/"
-                ftp.cwd(path)
-                list = ftp.nlst()
-                list.pop(0)
-                list.pop(0)
-                list.sort()
-                massremotethird = list
-            # Четвёртая папка для синхронизации
-            case "4":
-                listdirectors.append(int(element))
-                path = "/" + str(element) + "/"
-                ftp.cwd(path)
-                list = ftp.nlst()
-                list.pop(0)
-                list.pop(0)
-                list.sort()
-                massremotefourth = list
-            # Пятая папка для синхронизации
-            case "5":
-                listdirectors.append(int(element))
-                path = "/" + str(element) + "/"
-                ftp.cwd(path)
-                list = ftp.nlst()
-                list.pop(0)
-                list.pop(0)
-                list.sort()
-                massremotefifth = list
-            case _:
-                continue
-    listdirectors.sort()
+    try:
+        # Данные для связи с удалённым сервером
+        ftp = FTP(nameSite)
+        ftp.login(ftpLogin, ftpPass)
+        # Получаем данные о том какие данные есть на удалённом сервере
+        listalldirectors = ftp.nlst()
+        listdirectors = []
+        for element in listalldirectors:
+            match element:
+                # Первая папка для синхронизации
+                case "1":
+                    massremotefirst = importatesfromftp(ftp, listdirectors, element)
+                # Вторая папка для синхронизации
+                case "2":
+                    massremotesecond = importatesfromftp(ftp, listdirectors, element)
+                # Третья папка для синхронизации
+                case "3":
+                    massremotethird = importatesfromftp(ftp, listdirectors, element)
+                # Четвёртая папка для синхронизации
+                case "4":
+                    massremotefourth = importatesfromftp(ftp, listdirectors, element)
+                # Пятая папка для синхронизации
+                case "5":
+                    massremotefifth = importatesfromftp(ftp, listdirectors, element)
+                case _:
+                    continue
+        listdirectors.sort()
+    except:
+        print("Синхронизация папок не удалась. Попробуем в следующий раз")
+        return
 
 # Проверка на разность данных в локальных папках и на удалённом сервере
 def comparisonlists():
+
     # Первая папка
     result = list(set(masslocalfirst) - set(massremotefirst))
     if result == []:
@@ -159,47 +128,6 @@ def comparisonlists():
     else:
         print("Разность пятых папкок: ", result)
         uploadfiles(5, result)
-
-# Функция получения размера изображения
-def get_size_format(b, factor=1024, suffix="B"):
-    """
-    Scale bytes to its proper byte format
-    e.g:
-        1253656 => '1.20MB'
-        1253656678 => '1.17GB'
-    """
-    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
-        if b < factor:
-            return f"{b:.2f}{unit}{suffix}"
-        b /= factor
-    return f"{b:.2f}Y{suffix}"
-
-# Функция конвертации изображения (уменьшения веса и подгонка под заданные параметры)
-def convertimage(path):
-    # Размеры изображения на выходе
-    width = 1920
-    height = 1440
-    # Загружаем фотографию в память
-    img = Image.open(path)
-    # Первоначальный размер картинки
-    olddimensions = img.size
-    # Получаем размер изображения до компрессии
-    image_size = os.path.getsize(path)
-    oldsize = get_size_format(image_size)
-    # Преобразуем изображение приводя его к нужным высоте и ширине и уменьшая размер
-    img.thumbnail(size = (width, height))
-    if img.height > 1080:
-        difference_height = (height - 1080) / 2
-        img = img.crop((0, 0 + difference_height, 1920, height - difference_height))
-    # Сохраняем изображение
-    img.save(path, optimize=True, quality=95)
-    # Получаем новые размеры картинки
-    newdimesions = img.size
-    # Получаем размер изображение после компрессии
-    image_size = os.path.getsize(path)
-    newsize = get_size_format(image_size)
-    # Печатаем в кносоль результат
-    print(path, "с шириной, высотой: ", olddimensions, " и размером: ", oldsize, "была преобразована в: ", newdimesions , " и ", newsize)
 
 # Переименование и перемещение картинки по необходимому локальному пути
 def renameanduploadimage(pathimage, folder):
@@ -250,32 +178,45 @@ def uploadfiles(numberfolder, result):
 
 # Функция папки с фотографиями для разбора и сортировка их по необходимым папкам с нужными номерами
 def scanfolderforimages():
-    # Путь к главной папке
-    mainpath = '//192.168.20.215/фото товара/фото товара для разбора'
+    # Получаем лист фаилов находящиъся по адресу
     list = os.listdir(mainpath)
+    # Проверка наличия фотографий
+    # Если папок для разбора нет
     if list == []:
         print("\tДанные по импорту фотографий из папки для разбора отсутствуют")
+    # Если есть папки для разбора
     else:
+        # Выясняем количество папок
         lenphotos = len(list)
+        # Логгирование фотографий
         createnewarrowinlogs(lenphotos)
+        # Пробегаемся по элеметам
         for element in list:
-            # Обыгрывание Thumbs.db решение удалить пока не найдено(
+            # Обыгрывание Thumbs.db
             if element == "Thumbs.db":
+                # Выясняем путь к этому фаилу
                 path = mainpath + "/" + element
+                # Пытаемся удалить данный фаил
                 try:
                     if os.access(path, os.R_OK and os.X_OK):
                         os.remove(path)
                 except PermissionError:
+                    # Оператор заглушка равноценная отсутствию операции
                     pass
+            # Если же это не фаил Thumbs.db
             else:
+                # Выясняем путь к этому фаилу
                 pathfolder = mainpath + "/" + element
+                # Получаем данные о фаилах по этому пути
                 nextlist = os.listdir(pathfolder)
                 # Если папка пуста то пишем о пустой папке
                 if nextlist == []:
                     print("\t Папка ", element, " пуста")
+                # Если папка не пуста
                 else:
                     numberfolder = 1
                     for elem in nextlist:
+                        # Обыгрывание Thumbs.db
                         if elem == "Thumbs.db":
                             continue
                         else:
@@ -283,13 +224,17 @@ def scanfolderforimages():
                             if numberfolder >= 6:
                                 break
                             else:
+                                # Выясняем путь к фаилу
                                 pathimage = pathfolder + "/" + elem
+                                # Уменьшение веса и подгонка фотографии
                                 convertimage(pathimage)
+                                # Переименоваие и загрузка фотографии
                                 renameanduploadimage(pathimage, numberfolder)
+                                # Увеличиваем счётчик
                                 numberfolder = numberfolder + 1
         # После окончания загрузки фотографий по папкам удаляем папку
         for elem in list:
-            # Обыгрывание Thumbs.db решение удалить пока не найдено(
+            # Обыгрывание Thumbs.db
             if element == "Thumbs.db":
                 path = mainpath + "/" + element
                 try:
@@ -298,12 +243,19 @@ def scanfolderforimages():
                 except PermissionError:
                     pass
             else:
+                # Выясняем путь к фаилу
                 path = mainpath + "/" + elem
-                shutil.rmtree(path)
+                # Удаляем полностью папку
+                try:
+                    shutil.rmtree(path)
+                except Exception as e:
+                    print("Удаление невозможно. По причине ", e)
+
         print("Удаление папок завершено")
 
 # Функция изменения Call центра
 def changecallcenter():
+    pythoncom.CoInitialize()
     print("Я функция изменения call-центра")
     datesnowmonth = importdatesformexcel(pathfile, password)
     massive = chosedates(datesnowmonth)
@@ -326,26 +278,40 @@ def offcallcenter():
 
 # Класс времён
 class times:
+    # Время сейчас
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
+    # Перовначальное время сканирования
     timetoScan = today.time().strftime("%H:%M")
+    # Время для работы изменения Call-центра
     timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
+    # Время собрания (пока не используется)
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
 
 # Функция выбора действия от времени
 def switcher(argument):
     match argument:
+
+        # Время сканирования папки
         case times.timetoScan:
+            # Сканируем папку на наличии фотографий для загрузки
             scanfolderforimages()
+            # Сканируем локальные папки с фотографиями
             scanfilesinlocalserver()
+            # Сканируем удалённые папки с фотографиями
             scanfilesinremoteserver()
+            # Проверка различия локальной у удалённой папки
             comparisonlists()
+            # Вычисление следующего времени сканирования
             nexthour = datetime.datetime.today().hour + 1
             if nexthour == 24:
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
-            changecallcenter()
+            # Запускаем поток с функцией изменения call-центра
+            t1 = Thread(target=changecallcenter)
+            t1.start()
             print("Следующее вермя проверки:\t", times.timetoScan)
+
         case times.timetoChangeCallCenter:
             if times.timetoChangeCallCenter == "19:05":
                 times.timetoChangeCallCenter = datetime.time(8, 55).strftime("%H:%M")
@@ -353,7 +319,10 @@ def switcher(argument):
                 times.timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
             else:
                 print("Что то пошло не так в изменении времени...")
+            # Функция изменение call-центра
             changecallcenter()
+
+        # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t",argument)
 
@@ -362,5 +331,7 @@ while True:
     # Время сейчас
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M")
+    # Запускаем функцию обработки времени
     switcher(todaytime)
+    # Засыпаем функцию
     time.sleep(30)

@@ -1,4 +1,7 @@
 import datetime
+import time
+from PIL import Image
+import os
 import requests
 import win32com.client
 # Импорт баблиотеки для работы в APIGoogle
@@ -125,83 +128,157 @@ def selectmenegers(managerlists):
     todayday = int(today.strftime("%d"))
     print("Сегодня:", todayday, today.strftime("%B") ,int(today.strftime("%Y")))
     flag = True
-    # Изменяем статусы менеджеров call центра
-    for element in managerlists:
-        if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О":
-            numbermanager = numbermanagers[massmanagers.index(element[0])]
-            print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager,
-                  "'")
-            urlforapi = urlapi + str(numbermanager) + '/agent'
-            statusrequest = requests.put(urlforapi, params=paramoffline, headers=headers)
-            if statusrequest == "<Response [403]>":
-                flag = False
-                print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+    try:
+        # Изменяем статусы менеджеров call центра
+        for element in managerlists:
+
+            if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
+                numbermanager = numbermanagers[massmanagers.index(element[0])]
+                print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
+                      numbermanager,
+                      "'")
+                urlforapi = urlapi + str(numbermanager) + '/agent'
+                statusrequest = requests.put(urlforapi, params=paramoffline, headers=headers)
+                if statusrequest == "<Response [403]>":
+                    flag = False
+                    print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+                else:
+                    statusget = requests.get(urlforapi, headers=headers).text
+                    print("\tСтатус менеджера: ", element[0], " = ", statusget)
             else:
-                statusget = requests.get(urlforapi, headers=headers).text
-                print("\tСтатус менеджера: ", element[0], " = ", statusget)
+                numbermanager = numbermanagers[massmanagers.index(element[0])]
+                print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
+                      numbermanager,
+                      "'")
+                urlforapi = urlapi + str(numbermanager) + '/agent'
+                statusrequest = requests.put(urlforapi, params=paramsonline, headers=headers)
+                if statusrequest == "<Response [403]>":
+                    flag = False
+                    print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+                else:
+                    statusget = requests.get(urlforapi, headers=headers).text
+                    print("\tСтатус менеджера: ", element[0], " = ", statusget)
+        if flag == True:
+            return "\tCall центр успешно настроен."
         else:
-            numbermanager = numbermanagers[massmanagers.index(element[0])]
-            print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'", numbermanager,
-                  "'")
-            urlforapi = urlapi + str(numbermanager) + '/agent'
-            statusrequest = requests.put(urlforapi, params=paramsonline, headers=headers)
-            if statusrequest == "<Response [403]>":
-                flag = False
-                print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
-            else:
-                statusget = requests.get(urlforapi, headers=headers).text
-                print("\tСтатус менеджера: ", element[0], " = ", statusget)
-    if flag == True:
-        return "\tCall центр успешно настроен."
-    else:
-        return "\tВ работе функции произошла ошибка"
+            return "\tВ работе функции произошла ошибка"
+    except:
+        print("В работе call-центра произошла ошибка")
+        time.sleep(10)
 
 # Функция записи логов фотографий
 def createnewarrowinlogs(lenphotos):
-    # Подключаемся к сервисному аккаунту
-    gc = gspread.service_account(CREDENTIALS_FILE)
-    # Подключаемся к таблице по ключу таблицы
-    table = gc.open_by_key(sheetkey)
-    # Открываем нужный лист
-    worksheet = table.worksheet("LogsPhotos")
-    # Получаем данные с листа
-    dates = worksheet.get_values()
-    # Получаем номер самой последней строки
-    newstr = len(worksheet.col_values(1)) + 1
-    # Вычисляем номер строки
-    newnumber = newstr - 1
-    # Определяем время выполения операции
-    today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
-    # Добавляем строку в конец фаила логгирования
-    worksheet.update_cell(newstr, 1, newnumber)
-    worksheet.update_cell(newstr, 2, today)
-    worksheet.update_cell(newstr, 3, lenphotos)
+    try:
+        # Подключаемся к сервисному аккаунту
+        gc = gspread.service_account(CREDENTIALS_FILE)
+        # Подключаемся к таблице по ключу таблицы
+        table = gc.open_by_key(sheetkey)
+        # Открываем нужный лист
+        worksheet = table.worksheet("LogsPhotos")
+        # Получаем данные с листа
+        dates = worksheet.get_values()
+        # Получаем номер самой последней строки
+        newstr = len(worksheet.col_values(1)) + 1
+        # Вычисляем номер строки
+        newnumber = newstr - 1
+        # Определяем время выполения операции
+        today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+        # Добавляем строку в конец фаила логгирования
+        worksheet.update_cell(newstr, 1, newnumber)
+        worksheet.update_cell(newstr, 2, today)
+        worksheet.update_cell(newstr, 3, lenphotos)
+    except:
+        print("Логгирование фотографий сломалось(")
 
 # Функция записи логов Call Cener
 def createnewarrowincallcenter():
-    # Подключаемся к сервисному аккаунту
-    gc = gspread.service_account(CREDENTIALS_FILE)
-    # Подключаемся к таблице по ключу таблицы
-    table = gc.open_by_key(sheetkey)
-    # Открываем нужный лист
-    worksheet = table.worksheet("LogsCallCenter")
-    # Получаем номер самой последней строки
-    newstr = len(worksheet.col_values(1)) + 1
-    # Вычисляем номер строки
-    newnumber = newstr - 1
-    # Определяем время выполения операции
-    today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
-    # Выясняем данные кто работает
-    managerslist = []
-    # Выясняем статусы менеджеров
-    for element in numbermanagers:
-        urlforapi = urlapi + element + '/agent'
-        status = requests.get(urlforapi, headers=headers).text
-        managerslist.append(status)
-    # Добавляем строку в конец фаила логгирования
-    worksheet.update_cell(newstr, 1, newnumber)
-    worksheet.update_cell(newstr, 2, today)
-    worksheet.update_cell(newstr, 3, managerslist[0])
-    worksheet.update_cell(newstr, 4, managerslist[1])
-    worksheet.update_cell(newstr, 5, managerslist[2])
-    worksheet.update_cell(newstr, 6, managerslist[3])
+    try:
+        # Подключаемся к сервисному аккаунту
+        gc = gspread.service_account(CREDENTIALS_FILE)
+        # Подключаемся к таблице по ключу таблицы
+        table = gc.open_by_key(sheetkey)
+        # Открываем нужный лист
+        worksheet = table.worksheet("LogsCallCenter")
+        # Получаем номер самой последней строки
+        newstr = len(worksheet.col_values(1)) + 1
+        # Вычисляем номер строки
+        newnumber = newstr - 1
+        # Определяем время выполения операции
+        today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+        # Выясняем данные кто работает
+        managerslist = []
+        # Выясняем статусы менеджеров
+        for element in numbermanagers:
+            urlforapi = urlapi + element + '/agent'
+            status = requests.get(urlforapi, headers=headers).text
+            managerslist.append(status)
+        # Добавляем строку в конец фаила логгирования
+        worksheet.update_cell(newstr, 1, newnumber)
+        worksheet.update_cell(newstr, 2, today)
+        worksheet.update_cell(newstr, 3, managerslist[0])
+        worksheet.update_cell(newstr, 4, managerslist[1])
+        worksheet.update_cell(newstr, 5, managerslist[2])
+        worksheet.update_cell(newstr, 6, managerslist[3])
+    except:
+        print("Логгирование call-центра сломалось(")
+
+# Функция импорта данных
+def importatesfromftp(ftp, listdirectors, element):
+    # Добавляем элемент в лист
+    listdirectors.append(int(element))
+    # Определяем путь для папки
+    path = "/" + str(element) + "/"
+    # Изменение каталог работы
+    ftp.cwd(path)
+    # Получаем лист всех фаилов из папки
+    list = ftp.nlst()
+    # Удалем первые 2 элемента (так как на сервере система Linux)
+    list.pop(0)
+    list.pop(0)
+    # Сортируем фаилы по возрастанию
+    list.sort()
+    # Добавляем данные в массив
+    returnmass = list
+    # Возвращаем полученный список
+    return returnmass
+
+# Функция получения размера изображения
+def get_size_format(b, factor=1024, suffix="B"):
+    """
+    Scale bytes to its proper byte format
+    e.g:
+        1253656 => '1.20MB'
+        1253656678 => '1.17GB'
+    """
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+        if b < factor:
+            return f"{b:.2f}{unit}{suffix}"
+        b /= factor
+    return f"{b:.2f}Y{suffix}"
+
+# Функция конвертации изображения (уменьшения веса и подгонка под заданные параметры)
+def convertimage(path):
+    # Размеры изображения на выходе
+    width = 1920
+    height = 1440
+    # Загружаем фотографию в память
+    img = Image.open(path)
+    # Первоначальный размер картинки
+    olddimensions = img.size
+    # Получаем размер изображения до компрессии
+    image_size = os.path.getsize(path)
+    oldsize = get_size_format(image_size)
+    # Преобразуем изображение приводя его к нужным высоте и ширине и уменьшая размер
+    img.thumbnail(size = (width, height))
+    if img.height > 1080:
+        difference_height = (height - 1080) / 2
+        img = img.crop((0, 0 + difference_height, 1920, height - difference_height))
+    # Сохраняем изображение
+    img.save(path, optimize=True, quality=95)
+    # Получаем новые размеры картинки
+    newdimesions = img.size
+    # Получаем размер изображение после компрессии
+    image_size = os.path.getsize(path)
+    newsize = get_size_format(image_size)
+    # Печатаем в кносоль результат
+    print(path, "с шириной, высотой: ", olddimensions, " и размером: ", oldsize, "была преобразована в: ", newdimesions , " и ", newsize)
