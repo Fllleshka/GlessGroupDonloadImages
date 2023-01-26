@@ -7,6 +7,53 @@ import win32com.client
 # Импорт баблиотеки для работы в APIGoogle
 import gspread
 from dates import *
+import shutil
+
+# Функция компирования данных в фаил для работы
+def checkupdatedatesexcel():
+    # Экземпляр COM обьекта
+    xlApp = win32com.client.Dispatch("Excel.Application")
+    print("Экзмепляр COM: ", xlApp)
+
+    # Открываем основной файл
+    file1 = xlApp.Workbooks.Open(mainfile, Password=passwordmainfile)
+    print("Фаил1 :", file1)
+    file1.SaveAs(secondfile, Password=password)
+
+    # Открываем нужный лист
+    #sheet1 = file1.ActiveSheet
+    #print("Лист: ", sheet1)
+
+    # Открываем рабочий файл
+    #file2 = xlApp.Workbooks.Open(secondfile, False, True, None, password)
+    #print("Фаил2 :", file2)
+    # Открываем нужный лист
+    #sheet2 = file2.ActiveSheet
+    #print("Лист: ", sheet2)
+
+    #sheet1.Range("A1:AF100").Copy(sheet2.Range("A1:AF100"))
+    #sheet2.Save()
+
+    # Закрываем фаил
+    file1.Close()
+    #file2.Close()
+    # Закрываем COM обьект
+    xlApp.Quit()
+
+    # import win32com.client as win32
+    # from copy import copy
+    # excel = win32.gencache.EnsureDispatch('Excel.Application')
+    ## excel.Visible = False
+    # excel.DisplayAlerts = False
+    # wb0 = excel.Workbooks.Open(dirname + '\\' + 'original.xlsx')
+    # ws0 = wb0.Worksheets('Original_sheet')
+    # wb2 = excel.Workbooks.Open(dirname + '\\' + writer.path)
+    # ws2 = wb2.Worksheets.Add()
+    # ws2.Name = 'Copy_original'
+    # ws2 = wb2.Worksheets('Copy_original')
+    # ws0.Range("A1:AF100").Copy(ws2.Range("A%s:AF%s" % (row, col)))
+    # wb2.Save()
+    # excel.Application.Quit()
 
 # Функция импорта данных из Excel
 def importdatesformexcel(path, password):
@@ -18,18 +65,25 @@ def importdatesformexcel(path, password):
     sheet = xlwb.ActiveSheet
     # Выбираем данные из range
     alldates = sheet.Range("B1:B451")
-    #print(alldates)
+    # print(alldates)
+
     # Выясняем текущий мясяц
     today = datetime.datetime.today()
     todayyear = int(today.strftime("%Y"))
-    listmontheng = [datetime.date(todayyear, 1, 1).strftime("%B"), datetime.date(todayyear, 2, 1).strftime("%B"), datetime.date(todayyear, 3, 1).strftime("%B"), datetime.date(todayyear, 4, 1).strftime("%B"), datetime.date(todayyear, 5, 1).strftime("%B"), datetime.date(todayyear, 6, 1).strftime("%B"), datetime.date(todayyear, 7, 1).strftime("%B"), datetime.date(todayyear, 8, 1).strftime("%B"), datetime.date(todayyear, 9, 1).strftime("%B"), datetime.date(todayyear, 10, 1).strftime("%B"), datetime.date(todayyear, 11, 1).strftime("%B"), datetime.date(todayyear, 12, 1).strftime("%B")]
-    #print(listmontheng)
-    listmonthrus = ["ЯНВАРЬ", "ФЕВРАЛЬ", "МАРТ", "АПРЕЛЬ", "МАЙ", "ИЮНЬ", "ИЮЛЬ", "АВГУСТ", "СЕНТЯБРЬ", "ОКТЯБРЬ", "НОЯБРЬ", "ДЕКАБРЬ"]
-    #print(listmonthrus)
+    listmontheng = [datetime.date(todayyear, 1, 1).strftime("%B"), datetime.date(todayyear, 2, 1).strftime("%B"),
+                    datetime.date(todayyear, 3, 1).strftime("%B"), datetime.date(todayyear, 4, 1).strftime("%B"),
+                    datetime.date(todayyear, 5, 1).strftime("%B"), datetime.date(todayyear, 6, 1).strftime("%B"),
+                    datetime.date(todayyear, 7, 1).strftime("%B"), datetime.date(todayyear, 8, 1).strftime("%B"),
+                    datetime.date(todayyear, 9, 1).strftime("%B"), datetime.date(todayyear, 10, 1).strftime("%B"),
+                    datetime.date(todayyear, 11, 1).strftime("%B"), datetime.date(todayyear, 12, 1).strftime("%B")]
+    # print(listmontheng)
+    listmonthrus = ["ЯНВАРЬ", "ФЕВРАЛЬ", "МАРТ", "АПРЕЛЬ", "МАЙ", "ИЮНЬ", "ИЮЛЬ", "АВГУСТ", "СЕНТЯБРЬ", "ОКТЯБРЬ",
+                    "НОЯБРЬ", "ДЕКАБРЬ"]
+    # print(listmonthrus)
     todaymontheng = today.strftime("%B")
-    #print(todaymontheng)
+    # print(todaymontheng)
     todaymonthrus = listmonthrus[listmontheng.index(todaymontheng)]
-    #print("Текущий месяц: ", todaymonthrus)
+    # print("Текущий месяц: ", todaymonthrus)
 
     # Ищем стартовую ячейку, для определения графика на этот месяц
     index = 0
@@ -37,21 +91,21 @@ def importdatesformexcel(path, password):
     # Перебираем все элементы и находим нужную ячейку с текущим месяцем
     for element in alldates:
         index = index + 1
-        #print("[" + str(element) + "]\t", index)
+        # print("[" + str(element) + "]\t", index)
         if str(element) == todaymonthrus:
             indexmonth = index
-    #print("Ячейка для старта данных: ", indexmonth)
+    # print("Ячейка для старта данных: ", indexmonth)
     # Формируем название ячейки начала импорта
     firstcell = "B" + str(indexmonth)
     # Формируем название ячейки конца импорта
     lastcell = "AG" + str(indexmonth + 31)
-    #print("\t\t", firstcell, "\t\t", lastcell)
+    # print("\t\t", firstcell, "\t\t", lastcell)
     # Формируем строку для импорта
     cellsrange = firstcell + ":" + lastcell
-    #print("\t\t", cellsrange)
+    # print("\t\t", cellsrange)
     # Импортируем данные за нужный нам месяц
     datesforsolution = sheet.Range(cellsrange)
-    #print("\t", datesforsolution)
+    # print("\t", datesforsolution)
     # Формируем данные в список
     listdatesforsolution = []
     for element in datesforsolution:
@@ -68,8 +122,8 @@ def importdatesformexcel(path, password):
 def chosedates(dates):
     # Удаляем первый элемент
     del dates[0]
-    #print("Изначальный массив:")
-    #print("\t", dates)
+    # print("Изначальный массив:")
+    # print("\t", dates)
 
     # Считаем дни в месяце
     index = 0
@@ -79,19 +133,19 @@ def chosedates(dates):
             # Определяем количество дней в месяце
             countdaysinmonth = index - 1
             break
-    #print("Дней в месяце: ", countdaysinmonth)
+    # print("Дней в месяце: ", countdaysinmonth)
 
     # Удаляем ненужные данные
     for element in dates:
         if element == massmanagers[0]:
             delelements = dates.index(element)
     del dates[0:delelements]
-    #print("\t", dates)
+    # print("\t", dates)
 
     # Разбиваем массив для конкретизации графика каждого менеджера
     managerlists = []
-    lenmanagers = len(massmanagers)-1
-    #print("Количество менеджеров: ", lenmanagers)
+    lenmanagers = len(massmanagers) - 1
+    # print("Количество менеджеров: ", lenmanagers)
     for i in range(0, lenmanagers):
         managerlist = []
         index = 0
@@ -100,15 +154,15 @@ def chosedates(dates):
             index = index + 1
             if index == countdaysinmonth + 1:
                 break
-        #print(managerlist)
+        # print(managerlist)
         managerlists.append(managerlist)
         del dates[0:countdaysinmonth + 1]
 
     # Выясняем график работы ПП
-    deldates = 32*8
+    deldates = 32 * 8
     # Удаляем ненужные данные
     del dates[0:deldates]
-    #print(dates)
+    # print(dates)
     # Добавляем в массив работников данные
     managerlist = []
     index = 0
@@ -126,13 +180,14 @@ def selectmenegers(managerlists):
     # Выясняем текущй день
     today = datetime.datetime.today()
     todayday = int(today.strftime("%d"))
-    print("Сегодня:", todayday, today.strftime("%B") ,int(today.strftime("%Y")))
+    print("Сегодня:", todayday, today.strftime("%B"), int(today.strftime("%Y")))
     flag = True
     try:
         # Изменяем статусы менеджеров call центра
         for element in managerlists:
 
-            if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
+            if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[
+                todayday] == "Х":
                 numbermanager = numbermanagers[massmanagers.index(element[0])]
                 print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
                       numbermanager,
@@ -212,13 +267,20 @@ def createnewarrowincallcenter():
             urlforapi = urlapi + element + '/agent'
             status = requests.get(urlforapi, headers=headers).text
             managerslist.append(status)
-        # Добавляем строку в конец фаила логгирования
-        worksheet.update_cell(newstr, 1, newnumber)
-        worksheet.update_cell(newstr, 2, today)
-        worksheet.update_cell(newstr, 3, managerslist[0])
-        worksheet.update_cell(newstr, 4, managerslist[1])
-        worksheet.update_cell(newstr, 5, managerslist[2])
-        worksheet.update_cell(newstr, 6, managerslist[3])
+        # Проверяем изменится ли call центр
+        dates = worksheet.row_values(newnumber)
+        # Если данные уже сегодня записывались то не дублируем их
+        if dates[2] == managerslist[0] and dates[3] == managerslist[1] and dates[4] == managerslist[2] and dates[5] == managerslist[3] and str(dates[1])[:10] == str(today)[:10]:
+            print("\t\tДанные уже были записаны")
+        # Если же эти данные не были записаны, записываем
+        else:
+            # Добавляем строку в конец фаила логгирования
+            worksheet.update_cell(newstr, 1, newnumber)
+            worksheet.update_cell(newstr, 2, today)
+            worksheet.update_cell(newstr, 3, managerslist[0])
+            worksheet.update_cell(newstr, 4, managerslist[1])
+            worksheet.update_cell(newstr, 5, managerslist[2])
+            worksheet.update_cell(newstr, 6, managerslist[3])
     except:
         print("Логгирование call-центра сломалось(")
 
@@ -269,7 +331,7 @@ def convertimage(path):
     image_size = os.path.getsize(path)
     oldsize = get_size_format(image_size)
     # Преобразуем изображение приводя его к нужным высоте и ширине и уменьшая размер
-    img.thumbnail(size = (width, height))
+    img.thumbnail(size=(width, height))
     if img.height > 1080:
         difference_height = (height - 1080) / 2
         img = img.crop((0, 0 + difference_height, 1920, height - difference_height))
@@ -281,4 +343,5 @@ def convertimage(path):
     image_size = os.path.getsize(path)
     newsize = get_size_format(image_size)
     # Печатаем в кносоль результат
-    print(path, "с шириной, высотой: ", olddimensions, " и размером: ", oldsize, "была преобразована в: ", newdimesions , " и ", newsize)
+    print(path, "с шириной, высотой: ", olddimensions, " и размером: ", oldsize, "была преобразована в: ", newdimesions,
+          " и ", newsize)

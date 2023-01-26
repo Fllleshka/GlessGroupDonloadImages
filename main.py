@@ -4,6 +4,8 @@ from helperscripts import *
 from threading import Thread
 import pythoncom
 
+#locallist = []
+
 masslocalfirst = []
 masslocalsecond = []
 masslocalthird = []
@@ -17,6 +19,9 @@ massremotefifth = []
 
 # Функция формирования путей до папок на сервере картинок
 def scanfilesinlocalserver():
+
+    #global locallist
+
     global masslocalfirst
     global masslocalsecond
     global masslocalthird
@@ -31,6 +36,11 @@ def scanfilesinlocalserver():
         pathfolder = mainpath + "/" + element
         match element:
             case "1":
+                #locallist.index(0) = os.listdir(pathfolder)
+                #locallist.append(os.listdir(pathfolder))
+                #print(locallist[0])
+                #locallist[0].remove('Thumbs.db')
+
                 masslocalfirst = os.listdir(pathfolder)
                 masslocalfirst.remove('Thumbs.db')
             case "2":
@@ -90,6 +100,7 @@ def scanfilesinremoteserver():
 def comparisonlists():
 
     # Первая папка
+    #result = list(set(locallist[1]) - set(massremotefirst))
     result = list(set(masslocalfirst) - set(massremotefirst))
     if result == []:
         print("Первые\t\tпапки синхронизированны!")
@@ -257,6 +268,7 @@ def scanfolderforimages():
 def changecallcenter():
     pythoncom.CoInitialize()
     print("Я функция изменения call-центра")
+    #checkupdatedatesexcel()
     datesnowmonth = importdatesformexcel(pathfile, password)
     massive = chosedates(datesnowmonth)
     result = selectmenegers(massive)
@@ -291,7 +303,6 @@ class times:
 # Функция выбора действия от времени
 def switcher(argument):
     match argument:
-
         # Время сканирования папки
         case times.timetoScan:
             # Сканируем папку на наличии фотографий для загрузки
