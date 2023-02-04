@@ -1,4 +1,5 @@
 import datetime
+import shutil
 import time
 from PIL import Image
 import os
@@ -7,53 +8,39 @@ import win32com.client
 # Импорт баблиотеки для работы в APIGoogle
 import gspread
 from dates import *
-import shutil
+import openpyxl
 
 # Функция компирования данных в фаил для работы
 def checkupdatedatesexcel():
+    print("Проверка фаила на последнее изменение")
     # Экземпляр COM обьекта
     xlApp = win32com.client.Dispatch("Excel.Application")
     print("Экзмепляр COM: ", xlApp)
+    # Вычисляем время последнего изменения основного документа
+    file1 = openpyxl.load_workbook(mainfile).properties.modified
+    print(f"Дата изменения основного фаила: {file1}")
+    # Вычисляем дату последнего изменения рабочего документа
+    file2 = openpyxl.load_workbook(pathfile).properties.modified
+    print(f"Дата изменения фаила для работы: {file2}")
+    # Вычисляем разницу времён
+    diff_times = file2 - file1
+    print(f"Разница в датах изменений: {diff_times}")
+    # Устанавливаем количество часов для синхронизации фаилов
+    deltatime = datetime.timedelta(hours = 12)
+    print(f"Таймер синхронизации: {deltatime}")
+    # Если deltatime меньше разницы во времени изменения файлов
+    if deltatime < diff_times:
+        print("Синхронизация требуется")
+        # Выполняем копирование
+        shutil.copy2(mainfile, pathfile, follow_symlinks=True)
+        # Необходимо сделать измение пароля от фаила
 
-    # Открываем основной файл
-    file1 = xlApp.Workbooks.Open(mainfile, Password=passwordmainfile)
-    print("Фаил1 :", file1)
-    file1.SaveAs(secondfile, Password=password)
 
-    # Открываем нужный лист
-    #sheet1 = file1.ActiveSheet
-    #print("Лист: ", sheet1)
-
-    # Открываем рабочий файл
-    #file2 = xlApp.Workbooks.Open(secondfile, False, True, None, password)
-    #print("Фаил2 :", file2)
-    # Открываем нужный лист
-    #sheet2 = file2.ActiveSheet
-    #print("Лист: ", sheet2)
-
-    #sheet1.Range("A1:AF100").Copy(sheet2.Range("A1:AF100"))
-    #sheet2.Save()
-
-    # Закрываем фаил
-    file1.Close()
-    #file2.Close()
+    # Иначе синхронизацию не выполняем.
+    else:
+        print("Синхронизация не требуется")
     # Закрываем COM обьект
     xlApp.Quit()
-
-    # import win32com.client as win32
-    # from copy import copy
-    # excel = win32.gencache.EnsureDispatch('Excel.Application')
-    ## excel.Visible = False
-    # excel.DisplayAlerts = False
-    # wb0 = excel.Workbooks.Open(dirname + '\\' + 'original.xlsx')
-    # ws0 = wb0.Worksheets('Original_sheet')
-    # wb2 = excel.Workbooks.Open(dirname + '\\' + writer.path)
-    # ws2 = wb2.Worksheets.Add()
-    # ws2.Name = 'Copy_original'
-    # ws2 = wb2.Worksheets('Copy_original')
-    # ws0.Range("A1:AF100").Copy(ws2.Range("A%s:AF%s" % (row, col)))
-    # wb2.Save()
-    # excel.Application.Quit()
 
 # Функция импорта данных из Excel
 def importdatesformexcel(path, password):
@@ -122,8 +109,8 @@ def importdatesformexcel(path, password):
 def chosedates(dates):
     # Удаляем первый элемент
     del dates[0]
-    # print("Изначальный массив:")
-    # print("\t", dates)
+    #print("Изначальный массив:")
+    #print("\t", dates)
 
     # Считаем дни в месяце
     index = 0
@@ -133,36 +120,36 @@ def chosedates(dates):
             # Определяем количество дней в месяце
             countdaysinmonth = index - 1
             break
-    # print("Дней в месяце: ", countdaysinmonth)
+    #print("Дней в месяце: ", countdaysinmonth)
 
     # Удаляем ненужные данные
     for element in dates:
         if element == massmanagers[0]:
             delelements = dates.index(element)
     del dates[0:delelements]
-    # print("\t", dates)
+    #print("\t", dates)
 
     # Разбиваем массив для конкретизации графика каждого менеджера
     managerlists = []
     lenmanagers = len(massmanagers) - 1
-    # print("Количество менеджеров: ", lenmanagers)
+    #print("Количество менеджеров: ", lenmanagers)
     for i in range(0, lenmanagers):
         managerlist = []
         index = 0
         for element in dates:
             managerlist.append(element)
-            index = index + 1
-            if index == countdaysinmonth + 1:
+            index += 1
+            if index == 32:
                 break
-        # print(managerlist)
+        #print(managerlist)
         managerlists.append(managerlist)
-        del dates[0:countdaysinmonth + 1]
+        del dates[0:32]
 
     # Выясняем график работы ПП
     deldates = 32 * 8
     # Удаляем ненужные данные
     del dates[0:deldates]
-    # print(dates)
+    #print(dates)
     # Добавляем в массив работников данные
     managerlist = []
     index = 0
@@ -172,11 +159,12 @@ def chosedates(dates):
         if index == countdaysinmonth + 1:
             break
     managerlists.append(managerlist)
-
+    #print(managerlist)
     return managerlists
 
 # Функция активирования менеджеров
 def selectmenegers(managerlists):
+    #print(f"Листо менеджеров: {managerlists}")
     # Выясняем текущй день
     today = datetime.datetime.today()
     todayday = int(today.strftime("%d"))
@@ -186,8 +174,7 @@ def selectmenegers(managerlists):
         # Изменяем статусы менеджеров call центра
         for element in managerlists:
 
-            if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[
-                todayday] == "Х":
+            if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
                 numbermanager = numbermanagers[massmanagers.index(element[0])]
                 print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
                       numbermanager,
@@ -217,8 +204,8 @@ def selectmenegers(managerlists):
             return "\tCall центр успешно настроен."
         else:
             return "\tВ работе функции произошла ошибка"
-    except:
-        print("В работе call-центра произошла ошибка")
+    except Exception as e:
+        print(f"В работе call-центра произошла ошибка: {e}")
         time.sleep(10)
 
 # Функция записи логов фотографий
@@ -269,7 +256,7 @@ def createnewarrowincallcenter():
             managerslist.append(status)
         # Проверяем изменится ли call центр
         dates = worksheet.row_values(newnumber)
-        # Если данные уже сегодня записывались то не дублируем их
+        # Если данные уже сегодня записывались, то не дублируем их
         if dates[2] == managerslist[0] and dates[3] == managerslist[1] and dates[4] == managerslist[2] and dates[5] == managerslist[3] and str(dates[1])[:10] == str(today)[:10]:
             print("\t\tДанные уже были записаны")
         # Если же эти данные не были записаны, записываем
@@ -281,8 +268,8 @@ def createnewarrowincallcenter():
             worksheet.update_cell(newstr, 4, managerslist[1])
             worksheet.update_cell(newstr, 5, managerslist[2])
             worksheet.update_cell(newstr, 6, managerslist[3])
-    except:
-        print("Логгирование call-центра сломалось(")
+    except Exception as e:
+        print(f"Логгирование call-центра сломалось: {e}")
 
 # Функция импорта данных
 def importatesfromftp(ftp, listdirectors, element):

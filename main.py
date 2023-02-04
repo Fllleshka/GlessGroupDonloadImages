@@ -268,7 +268,7 @@ def scanfolderforimages():
 def changecallcenter():
     pythoncom.CoInitialize()
     print("Я функция изменения call-центра")
-    #checkupdatedatesexcel()
+    checkupdatedatesexcel()
     datesnowmonth = importdatesformexcel(pathfile, password)
     massive = chosedates(datesnowmonth)
     result = selectmenegers(massive)
