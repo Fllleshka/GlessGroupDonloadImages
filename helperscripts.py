@@ -12,35 +12,47 @@ import openpyxl
 
 # Функция компирования данных в фаил для работы
 def checkupdatedatesexcel():
-    print("Проверка фаила на последнее изменение")
-    # Экземпляр COM обьекта
-    xlApp = win32com.client.Dispatch("Excel.Application")
-    print("Экзмепляр COM: ", xlApp)
+    #print("Проверка фаила на последнее изменение")
     # Вычисляем время последнего изменения основного документа
     file1 = openpyxl.load_workbook(mainfile).properties.modified
-    print(f"Дата изменения основного фаила: {file1}")
+    #print(f"Дата изменения основного фаила: {file1}")
     # Вычисляем дату последнего изменения рабочего документа
     file2 = openpyxl.load_workbook(pathfile).properties.modified
-    print(f"Дата изменения фаила для работы: {file2}")
+    #print(f"Дата изменения фаила для работы: {file2}")
     # Вычисляем разницу времён
     diff_times = file2 - file1
-    print(f"Разница в датах изменений: {diff_times}")
+    #print(f"Разница в датах изменений: {diff_times}")
     # Устанавливаем количество часов для синхронизации фаилов
-    deltatime = datetime.timedelta(hours = 12)
-    print(f"Таймер синхронизации: {deltatime}")
+    deltatime = datetime.timedelta(days=0, hours=12)
+    #print(f"Таймер синхронизации: {deltatime}")
     # Если deltatime меньше разницы во времени изменения файлов
     if deltatime < diff_times:
         print("Синхронизация требуется")
         # Выполняем копирование
         shutil.copy2(mainfile, pathfile, follow_symlinks=True)
-        # Необходимо сделать измение пароля от фаила
+        print("Статус операции изменения фаила: [Фаил обновлён]")
+        # Необходимо сделать измение пароля от файла
 
+        #wb = openpyxl.load_workbook(pathfile, password)
+        #print("\t\t\t", wb)
+        #ws = wb.active
+        #print("\t\t\t", ws)
+        #wb.save(pathfile, password)
+        #wb.security.workbookPassword = password
+        #Экземпляр COM обьекта
+        #xlApp = win32com.client.Dispatch("Excel.Application")
+        #print("Экзмепляр COM: ", xlApp)
+        #print ("Excel library version:", xlApp.Version)
+        #xlwb = xlApp.Workbooks.Open(pathfile, Password=password)
+        #print ("Фаил Ecxel: ", xlwb)
+        # Закрываем COM обьект
+        #xlApp.Quit()
 
+        # Логгирование обновления фаила
+        createnewarrowincallcenter2()
     # Иначе синхронизацию не выполняем.
     else:
         print("Синхронизация не требуется")
-    # Закрываем COM обьект
-    xlApp.Quit()
 
 # Функция импорта данных из Excel
 def importdatesformexcel(path, password):
@@ -261,13 +273,60 @@ def createnewarrowincallcenter():
             print("\t\tДанные уже были записаны")
         # Если же эти данные не были записаны, записываем
         else:
+            greencolor = {"backgroundColor": {"red": 0.01, "green": 0.8, "blue": 0.01}, "horizontalAlignment": "CENTER"}
+            redcolor = {"backgroundColor": {"red": 0.8, "green": 0.01, "blue": 0.01,}, "horizontalAlignment": "CENTER"}
             # Добавляем строку в конец фаила логгирования
             worksheet.update_cell(newstr, 1, newnumber)
             worksheet.update_cell(newstr, 2, today)
             worksheet.update_cell(newstr, 3, managerslist[0])
+            if managerslist[0] == '"ONLINE"':
+                worksheet.format("C" + str(newstr), greencolor)
+            else:
+                worksheet.format("C" + str(newstr), redcolor)
             worksheet.update_cell(newstr, 4, managerslist[1])
+            if managerslist[1] == '"ONLINE"':
+                worksheet.format("D" + str(newstr), greencolor)
+            else:
+                worksheet.format("D" + str(newstr), redcolor)
             worksheet.update_cell(newstr, 5, managerslist[2])
+            if managerslist[2] == '"ONLINE"':
+                worksheet.format("E" + str(newstr), greencolor)
+            else:
+                worksheet.format("E" + str(newstr), redcolor)
             worksheet.update_cell(newstr, 6, managerslist[3])
+            if managerslist[3] == '"ONLINE"':
+                worksheet.format("F" + str(newstr), greencolor)
+            else:
+                worksheet.format("F" + str(newstr), redcolor)
+    except Exception as e:
+        print(f"Логгирование call-центра сломалось: {e}")
+
+# Функция записи обновления файла Call Cener
+def createnewarrowincallcenter2():
+    try:
+        # Подключаемся к сервисному аккаунту
+        gc = gspread.service_account(CREDENTIALS_FILE)
+        # Подключаемся к таблице по ключу таблицы
+        table = gc.open_by_key(sheetkey)
+        # Открываем нужный лист
+        worksheet = table.worksheet("LogsCallCenter")
+        # Получаем номер самой последней строки
+        newstr = len(worksheet.col_values(1)) + 1
+        # Вычисляем номер строки
+        newnumber = newstr - 1
+        # Определяем время выполения операции
+        today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+        # Определяем диапазон для обьединения ячеек
+        mergerange = "C" + str(newstr) + ":F" + str(newstr)
+        print(mergerange)
+        # Обьединяем ячейки да записи
+        worksheet.merge_cells(mergerange)
+        # Добавляем запись в таблицу логгирования
+        worksheet.update_cell(newstr, 1, newnumber)
+        worksheet.update_cell(newstr, 2, today)
+        worksheet.update_cell(newstr, 3, "Фаил [График 2023 ТЕСТ.xlsx] обновлён")
+        # Делаем центрирование ячейки
+        worksheet.format(mergerange, {"horizontalAlignment": "CENTER"})
     except Exception as e:
         print(f"Логгирование call-центра сломалось: {e}")
 
