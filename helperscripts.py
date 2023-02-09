@@ -1,6 +1,7 @@
 import datetime
 import shutil
 import time
+
 from PIL import Image
 import os
 import requests
@@ -391,3 +392,24 @@ def convertimage(path):
     # Печатаем в кносоль результат
     print(path, "с шириной, высотой: ", olddimensions, " и размером: ", oldsize, "была преобразована в: ", newdimesions,
           " и ", newsize)
+
+# Функциия импорта и систематизация статистики по звонкам
+def collectionofinformation():
+    print("Время иморта статистики по звонкам")
+    try:
+        dateAndTimeStart = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
+        dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
+        dateAndTimeStart += "T00:00:00.000Z"
+        dateAndTimeEnd += "T00:00:00.000Z"
+        statusrequests = []
+        for element in numbermanagers:
+            paramsinfo['userId'] = element
+            paramsinfo['dateTo'] = dateAndTimeEnd
+            paramsinfo['dateFrom'] = dateAndTimeStart
+            statusrequest = requests.get(urlforstatistics, params=paramsinfo, headers=headers)
+            statusrequests.append(statusrequest.text)
+        for element in statusrequests:
+            print(element)
+
+    except Exception as e:
+        print(f"Логгирование статистики по звонкам сломалось: {e}")
