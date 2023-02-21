@@ -327,7 +327,8 @@ def switcher(argument):
             print("Следующее время проверки:\t", times.timetoScan)
             collectionofinformation()
         case times.timetoCollectionOfInformation:
-            collectionofinformation()
+            print()
+            #collectionofinformation()
 
         # Время которое не выбрано для события
         case default:

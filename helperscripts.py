@@ -10,6 +10,7 @@ import win32com.client
 import gspread
 from dates import *
 import openpyxl
+import json
 
 # Функция компирования данных в фаил для работы
 def checkupdatedatesexcel():
@@ -21,11 +22,11 @@ def checkupdatedatesexcel():
     file2 = openpyxl.load_workbook(pathfile).properties.modified
     #print(f"Дата изменения фаила для работы: {file2}")
     # Вычисляем разницу времён
-    diff_times = file2 - file1
-    #print(f"Разница в датах изменений: {diff_times}")
+    diff_times = file1 - file2
+    print(f"Разница в датах изменений: {diff_times}")
     # Устанавливаем количество часов для синхронизации фаилов
     deltatime = datetime.timedelta(days=0, hours=12)
-    #print(f"Таймер синхронизации: {deltatime}")
+    print(f"Таймер синхронизации: {deltatime}")
     # Если deltatime меньше разницы во времени изменения файлов
     if deltatime < diff_times:
         print("Синхронизация требуется")
@@ -319,7 +320,7 @@ def createnewarrowincallcenter2():
         today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
         # Определяем диапазон для обьединения ячеек
         mergerange = "C" + str(newstr) + ":F" + str(newstr)
-        print(mergerange)
+        #print(mergerange)
         # Обьединяем ячейки да записи
         worksheet.merge_cells(mergerange)
         # Добавляем запись в таблицу логгирования
@@ -396,20 +397,78 @@ def convertimage(path):
 # Функциия импорта и систематизация статистики по звонкам
 def collectionofinformation():
     print("Время иморта статистики по звонкам")
+
+    # Класс звонка
+    class phoneCall:
+        def __init__(self, name_manager, incoming_call_time, incoming_call_number, call_duration, direction, status):
+            # ФИО менеджера
+            self.name_manager = name_manager
+            # Время входящего звонка
+            self.incoming_call_time = incoming_call_time
+            # Телефон звонка
+            self.incoming_call_number = incoming_call_number
+            # Продолжительность звонка
+            self.call_duration = call_duration
+            # Тип вызова (INBOUND-Входящий вызов, OUTBOUND-Исходящий вызов))
+            self.direction = direction
+            # Статус звонка (RECIEVED-принятый, MISSED-пропущенный, PLACED-исходящий)
+            self.status = status
+
+        # Функция печати данных
+        def printdates(self):
+            print(f"\t{self.name_manager}"
+                  f"\t{self.incoming_call_time}"
+                  f"\t\t{self.incoming_call_number}"
+                  f"\t{self.call_duration}"
+                  f"\t\t{self.direction}"
+                  f"\t\t{self.status}")
     try:
+        # Дата начала отчёта (сегодняшний день)
         dateAndTimeStart = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
-        dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
         dateAndTimeStart += "T00:00:00.000Z"
+        # Дата окончания отчёта (завтрашний день)
+        dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
         dateAndTimeEnd += "T00:00:00.000Z"
-        statusrequests = []
+        calls = []
+
         for element in numbermanagers:
             paramsinfo['userId'] = element
             paramsinfo['dateTo'] = dateAndTimeEnd
             paramsinfo['dateFrom'] = dateAndTimeStart
             statusrequest = requests.get(urlforstatistics, params=paramsinfo, headers=headers)
-            statusrequests.append(statusrequest.text)
-        for element in statusrequests:
-            print(element)
-
+            # statusrequests.append(statusrequest.text)
+            jsonData = json.loads(statusrequest.text)
+            for elem in jsonData:
+                #print(elem)
+                #print(elem['direction'])
+                # Вычисляем время звонка
+                dateandtime = datetime.datetime.fromtimestamp(elem['startDate'] / 1000)
+                # Вычисляем продолжительность разговора
+                dateandtime2 = datetime.timedelta(milliseconds=elem['duration'])
+                # Если вызов входящий
+                if elem['direction'] == 'INBOUND':
+                    # Вычисляем телефон абонента
+                    phone = elem['phone_from']
+                    # Добавляем в массив звонков экземпляр класса phoneCall
+                    calls.append(phoneCall(name_manager=elem['abonent']['firstName'],
+                                           incoming_call_time=dateandtime,
+                                           incoming_call_number=phone,
+                                           call_duration=dateandtime2,
+                                           direction=elem['direction'],
+                                           status=elem['status']))
+                # Иначе вызов исходящий:
+                else:
+                    # Вычисляем телефон абонента
+                    phone = elem['phone_to']
+                    # Добавляем в массив звонков экземпляр класса phoneCall
+                    calls.append(phoneCall(name_manager=elem['abonent']['firstName'],
+                                           incoming_call_time=dateandtime,
+                                           incoming_call_number=phone,
+                                           call_duration=dateandtime2,
+                                           direction=elem['direction'],
+                                           status=elem['status']))
+                #print(f"\t{elem['abonent']['firstName']}\t{dateandtime}\t\t{phone}\t{dateandtime2}\t{elem['status']}")
+        for element in calls:
+            element.printdates()
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")
