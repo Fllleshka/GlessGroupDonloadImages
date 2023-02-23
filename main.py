@@ -298,8 +298,7 @@ class times:
     # Время для работы изменения Call-центра
     timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
     # Время для сбора статистики по звонкам (01:00)
-    #timetoCollectionOfInformation = datetime.time(1, 0).strftime("%H:%M")
-    timetoCollectionOfInformation = (datetime.datetime.today() + datetime.timedelta(seconds=10)).strftime("%H:%M")
+    timetoCollectionOfInformation = datetime.time(1, 0).strftime("%H:%M")
     # Время собрания (пока не используется)
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
 
@@ -325,11 +324,10 @@ def switcher(argument):
             t1 = Thread(target=changecallcenter)
             t1.start()
             print("Следующее время проверки:\t", times.timetoScan)
-            collectionofinformation()
         case times.timetoCollectionOfInformation:
-            print()
-            #collectionofinformation()
-
+            # Запускаем поток с функцией сбора статистики call-центра
+            t2 = Thread(target=collectionofinformation)
+            t2.start()
         # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t",argument)

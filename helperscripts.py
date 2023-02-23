@@ -11,6 +11,7 @@ import gspread
 from dates import *
 import openpyxl
 import json
+import humanfriendly
 
 # Функция компирования данных в фаил для работы
 def checkupdatedatesexcel():
@@ -423,10 +424,10 @@ def collectionofinformation():
                   f"\t\t{self.direction}"
                   f"\t\t{self.status}")
     try:
-        # Дата начала отчёта (сегодняшний день)
+        # Дата начала отчёта (вчерашний день начало для)
         dateAndTimeStart = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
         dateAndTimeStart += "T00:00:00.000Z"
-        # Дата окончания отчёта (завтрашний день)
+        # Дата окончания отчёта (сегодняшний день начало дня)
         dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
         dateAndTimeEnd += "T00:00:00.000Z"
         calls = []
@@ -467,8 +468,110 @@ def collectionofinformation():
                                            call_duration=dateandtime2,
                                            direction=elem['direction'],
                                            status=elem['status']))
-                #print(f"\t{elem['abonent']['firstName']}\t{dateandtime}\t\t{phone}\t{dateandtime2}\t{elem['status']}")
+        dates = []
+        # Подключаемся к сервисному аккаунту
+        gc = gspread.service_account(CREDENTIALS_FILE)
+        # Подключаемся к таблице по ключу таблицы
+        table = gc.open_by_key(sheetkey)
+        # Открываем нужный лист
+        worksheet = table.worksheet("StatisticOfCalls")
+        # Получаем номер самой последней строки
+        newstr = len(worksheet.col_values(4)) + 1
+        # Вычисляем номер строки
+        newnumber = newstr - 2
+        dates.append(newnumber)
+        # Определяем время выполения операции
+        today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+        dates.append(today)
+        # Выводим дату за которую приводим статистику
+        statdate = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%d.%m.%Y")
+        dates.append(statdate)
+        missescalls1 = 0
+        missescalls2 = 0
+        missescalls3 = 0
+        missescalls4 = 0
+        inboundcalls1 = 0
+        inboundcalls2 = 0
+        inboundcalls3 = 0
+        inboundcalls4 = 0
+        sumtimes1 = datetime.timedelta(milliseconds=0)
+        sumtimes2 = datetime.timedelta(milliseconds=0)
+        sumtimes3 = datetime.timedelta(milliseconds=0)
+        sumtimes4 = datetime.timedelta(milliseconds=0)
         for element in calls:
-            element.printdates()
+            print(element.printdates())
+            if element.name_manager == fullmassmanagers[0]:
+                #print("Считаем статистику для Коновалова")
+                # Если вызов входящий пропущенный
+                if element.direction == "INBOUND" and element.status == "MISSED":
+                    missescalls1 += 1
+                # Если вызов входящий принятый
+                elif element.direction == "INBOUND" and element.status == "RECIEVED":
+                    inboundcalls1 += 1
+                    sumtimes1 += element.call_duration
+            elif element.name_manager == fullmassmanagers[1]:
+                #print("Считаем статистику для Загравского")
+                # Если вызов входящий пропущенный
+                if element.direction == "INBOUND" and element.status == "MISSED":
+                    missescalls2 += 1
+                # Если вызов входящий принятый
+                elif element.direction == "INBOUND" and element.status == "RECIEVED":
+                    inboundcalls2 += 1
+                    sumtimes2 += element.call_duration
+            elif element.name_manager == fullmassmanagers[2]:
+                #print("Считаем статистику для Берегового")
+                # Если вызов входящий пропущенный
+                if element.direction == "INBOUND" and element.status == "MISSED":
+                    missescalls3 += 1
+                # Если вызов входящий принятый
+                elif element.direction == "INBOUND" and element.status == "RECIEVED":
+                    inboundcalls3 += 1
+                    sumtimes3 += element.call_duration
+            elif element.name_manager == fullmassmanagers[3]:
+                #print("Считаем статистику для Пешкового")
+                # Если вызов входящий пропущенный
+                if element.direction == "INBOUND" and element.status == "MISSED":
+                    missescalls4 += 1
+                # Если вызов входящий принятый
+                elif element.direction == "INBOUND" and element.status == "RECIEVED":
+                    inboundcalls4 += 1
+                    sumtimes4 += element.call_duration
+            else:
+                print("Cтатистика для Неизвестного лица(")
+
+        dates.append(missescalls1)
+        dates.append(inboundcalls1)
+        totseconds = sumtimes1.total_seconds()
+        hours, remainder = divmod(int(totseconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+        dates.append(result)
+        dates.append(missescalls2)
+        dates.append(inboundcalls2)
+        totseconds = sumtimes2.total_seconds()
+        hours, remainder = divmod(int(totseconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+        dates.append(result)
+        dates.append(missescalls3)
+        dates.append(inboundcalls3)
+        totseconds = sumtimes3.total_seconds()
+        hours, remainder = divmod(int(totseconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+        dates.append(result)
+        dates.append(missescalls4)
+        dates.append(inboundcalls4)
+        totseconds = sumtimes4.total_seconds()
+        hours, remainder = divmod(int(totseconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+        dates.append(result)
+        print(dates)
+        i = 0
+        for element in dates:
+            print(f"{newnumber}\t{i+1}\t{dates[i]}")
+            worksheet.update_cell(newstr, i+1, dates[i])
+            i += 1
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")
