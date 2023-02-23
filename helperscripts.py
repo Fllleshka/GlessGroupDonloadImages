@@ -328,6 +328,9 @@ def createnewarrowincallcenter2():
         worksheet.update_cell(newstr, 1, newnumber)
         worksheet.update_cell(newstr, 2, today)
         worksheet.update_cell(newstr, 3, "Фаил [График 2023 ТЕСТ.xlsx] обновлён")
+        # Окрашивание ячейки
+        color = {"backgroundColor": {"red": 0.94, "green": 0.9, "blue": 0.15}, "horizontalAlignment": "CENTER"}
+        worksheet.format("C" + str(newstr), color)
         # Делаем центрирование ячейки
         worksheet.format(mergerange, {"horizontalAlignment": "CENTER"})
     except Exception as e:
