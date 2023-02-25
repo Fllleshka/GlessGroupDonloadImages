@@ -489,92 +489,55 @@ def collectionofinformation():
         # Выводим дату за которую приводим статистику
         statdate = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%d.%m.%Y")
         dates.append(statdate)
-        missescalls1 = 0
-        missescalls2 = 0
-        missescalls3 = 0
-        missescalls4 = 0
-        inboundcalls1 = 0
-        inboundcalls2 = 0
-        inboundcalls3 = 0
-        inboundcalls4 = 0
-        sumtimes1 = datetime.timedelta(milliseconds=0)
-        sumtimes2 = datetime.timedelta(milliseconds=0)
-        sumtimes3 = datetime.timedelta(milliseconds=0)
-        sumtimes4 = datetime.timedelta(milliseconds=0)
+        # Обявлем массивы для подсчёта
+        massmissescals = [0, 0, 0, 0]
+        massinboundcalls = [0, 0, 0, 0]
+        masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
+        # Пробегаемся по всем звонкам и сортируем звонки
         for element in calls:
-            print(element.printdates())
+            # Считаем статистику для первого менеджера
             if element.name_manager == fullmassmanagers[0]:
-                #print("Считаем статистику для Коновалова")
-                # Если вызов входящий пропущенный
-                if element.direction == "INBOUND" and element.status == "MISSED":
-                    missescalls1 += 1
-                # Если вызов входящий принятый
-                elif element.direction == "INBOUND" and element.status == "RECIEVED":
-                    inboundcalls1 += 1
-                    sumtimes1 += element.call_duration
+                addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 0, element)
+            # Считаем статистику для второго менеджера
             elif element.name_manager == fullmassmanagers[1]:
-                #print("Считаем статистику для Загравского")
-                # Если вызов входящий пропущенный
-                if element.direction == "INBOUND" and element.status == "MISSED":
-                    missescalls2 += 1
-                # Если вызов входящий принятый
-                elif element.direction == "INBOUND" and element.status == "RECIEVED":
-                    inboundcalls2 += 1
-                    sumtimes2 += element.call_duration
+                addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 1, element)
+            # Считаем статистику для третьего менеджера
             elif element.name_manager == fullmassmanagers[2]:
-                #print("Считаем статистику для Берегового")
-                # Если вызов входящий пропущенный
-                if element.direction == "INBOUND" and element.status == "MISSED":
-                    missescalls3 += 1
-                # Если вызов входящий принятый
-                elif element.direction == "INBOUND" and element.status == "RECIEVED":
-                    inboundcalls3 += 1
-                    sumtimes3 += element.call_duration
+                addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 2, element)
+            # Считаем статистику для четвёртого менеджера
             elif element.name_manager == fullmassmanagers[3]:
-                #print("Считаем статистику для Пешкового")
-                # Если вызов входящий пропущенный
-                if element.direction == "INBOUND" and element.status == "MISSED":
-                    missescalls4 += 1
-                # Если вызов входящий принятый
-                elif element.direction == "INBOUND" and element.status == "RECIEVED":
-                    inboundcalls4 += 1
-                    sumtimes4 += element.call_duration
+                addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 3, element)
             else:
                 print("Cтатистика для Неизвестного лица(")
+        # Добавляем данные с разбора в результурующий массив
+        for element in range(4):
+            dates.append(massmissescals[element])
+            dates.append(massinboundcalls[element])
+            dates.append(converttoseconds(masssumtimes[element].total_seconds()))
 
-        dates.append(missescalls1)
-        dates.append(inboundcalls1)
-        totseconds = sumtimes1.total_seconds()
-        hours, remainder = divmod(int(totseconds), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
-        dates.append(result)
-        dates.append(missescalls2)
-        dates.append(inboundcalls2)
-        totseconds = sumtimes2.total_seconds()
-        hours, remainder = divmod(int(totseconds), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
-        dates.append(result)
-        dates.append(missescalls3)
-        dates.append(inboundcalls3)
-        totseconds = sumtimes3.total_seconds()
-        hours, remainder = divmod(int(totseconds), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
-        dates.append(result)
-        dates.append(missescalls4)
-        dates.append(inboundcalls4)
-        totseconds = sumtimes4.total_seconds()
-        hours, remainder = divmod(int(totseconds), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
-        dates.append(result)
-        print(dates)
+        # Записываем получившееся результаты в таблицу
         i = 0
         for element in dates:
-            print(f"{newnumber}\t{i+1}\t{dates[i]}")
             worksheet.update_cell(newstr, i+1, dates[i])
             i += 1
+
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")
+
+# Функция разбора данных по звонкам
+def addinfoinmass(massmissescals, massinboundcalls, masssumtimes, numbermanager, elemclass):
+    # Если вызов входящий пропущенный
+    if elemclass.direction == "INBOUND" and elemclass.status == "MISSED":
+        massmissescals[numbermanager] += 1
+    # Если вызов входящий принятый
+    elif elemclass.direction == "INBOUND" and elemclass.status == "RECIEVED":
+        massinboundcalls[numbermanager] += 1
+        masssumtimes[numbermanager] += elemclass.call_duration
+    return [massmissescals, massinboundcalls, masssumtimes]
+
+# Функция удобно представления времени разговора из миллисекунд в нормальное представление
+def converttoseconds(totseconds):
+    hours, remainder = divmod(int(totseconds), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+    return result

@@ -320,14 +320,23 @@ def switcher(argument):
             if nexthour == 24:
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
-            # Запускаем поток с функцией изменения call-центра
-            t1 = Thread(target=changecallcenter)
-            t1.start()
             print("Следующее время проверки:\t", times.timetoScan)
+
+        # Время для сбора статистики call-центра
         case times.timetoCollectionOfInformation:
             # Запускаем поток с функцией сбора статистики call-центра
-            t2 = Thread(target=collectionofinformation)
+            t1 = Thread(target=collectionofinformation)
+            t1.start()
+        case times.timetoChangeCallCenter:
+            flag = True
+            # Запускаем поток с функцией изменения call-центра
+            t2 = Thread(target=changecallcenter)
             t2.start()
+            if flag == True:
+                timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
+                flag = False
+            else:
+                flag = True
         # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t",argument)
