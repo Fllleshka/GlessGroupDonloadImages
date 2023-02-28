@@ -11,7 +11,6 @@ import gspread
 from dates import *
 import openpyxl
 import json
-import humanfriendly
 
 # Функция компирования данных в фаил для работы
 def checkupdatedatesexcel():

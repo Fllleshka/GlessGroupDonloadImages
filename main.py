@@ -1,32 +1,15 @@
 from ftplib import FTP
-import shutil
 from helperscripts import *
 from threading import Thread
 import pythoncom
 
-#locallist = []
-
-masslocalfirst = []
-masslocalsecond = []
-masslocalthird = []
-masslocalfourth = []
-masslocalfifth = []
-massremotefirst = []
-massremotesecond = []
-massremotethird = []
-massremotefourth = []
-massremotefifth = []
+masslocal = [[], [], [], [], []]
+massremote = [[], [], [], [], []]
 
 # Функция формирования путей до папок на сервере картинок
 def scanfilesinlocalserver():
 
-    #global locallist
-
-    global masslocalfirst
-    global masslocalsecond
-    global masslocalthird
-    global masslocalfourth
-    global masslocalfifth
+    global masslocal
     i = 0
     # Главный путь к папкам
     mainpath = '//192.168.20.215/фото товара'
@@ -36,35 +19,26 @@ def scanfilesinlocalserver():
         pathfolder = mainpath + "/" + element
         match element:
             case "1":
-                #locallist.index(0) = os.listdir(pathfolder)
-                #locallist.append(os.listdir(pathfolder))
-                #print(locallist[0])
-                #locallist[0].remove('Thumbs.db')
-
-                masslocalfirst = os.listdir(pathfolder)
-                masslocalfirst.remove('Thumbs.db')
+                masslocal[0] = os.listdir(pathfolder)
+                masslocal[0].remove('Thumbs.db')
             case "2":
-                masslocalsecond = os.listdir(pathfolder)
-                masslocalsecond.remove('Thumbs.db')
+                masslocal[1] = os.listdir(pathfolder)
+                masslocal[1].remove('Thumbs.db')
             case "3":
-                masslocalthird = os.listdir(pathfolder)
-                masslocalthird.remove('Thumbs.db')
+                masslocal[2] = os.listdir(pathfolder)
+                masslocal[2].remove('Thumbs.db')
             case "4":
-                masslocalfourth = os.listdir(pathfolder)
-                masslocalfourth.remove('Thumbs.db')
+                masslocal[3] = os.listdir(pathfolder)
+                masslocal[3].remove('Thumbs.db')
             case "5":
-                masslocalfifth = os.listdir(pathfolder)
-                masslocalfifth.remove('Thumbs.db')
+                masslocal[4] = os.listdir(pathfolder)
+                masslocal[4].remove('Thumbs.db')
             case _:
                 continue
 
 # Функция сканируемых данных на удалённом сервере
 def scanfilesinremoteserver():
-    global massremotefirst
-    global massremotesecond
-    global massremotethird
-    global massremotefourth
-    global massremotefifth
+    global massremote
     try:
         # Данные для связи с удалённым сервером
         ftp = FTP(nameSite)
@@ -76,19 +50,19 @@ def scanfilesinremoteserver():
             match element:
                 # Первая папка для синхронизации
                 case "1":
-                    massremotefirst = importatesfromftp(ftp, listdirectors, element)
+                    massremote[0] = importatesfromftp(ftp, listdirectors, element)
                 # Вторая папка для синхронизации
                 case "2":
-                    massremotesecond = importatesfromftp(ftp, listdirectors, element)
+                    massremote[1] = importatesfromftp(ftp, listdirectors, element)
                 # Третья папка для синхронизации
                 case "3":
-                    massremotethird = importatesfromftp(ftp, listdirectors, element)
+                    massremote[2] = importatesfromftp(ftp, listdirectors, element)
                 # Четвёртая папка для синхронизации
                 case "4":
-                    massremotefourth = importatesfromftp(ftp, listdirectors, element)
+                    massremote[3] = importatesfromftp(ftp, listdirectors, element)
                 # Пятая папка для синхронизации
                 case "5":
-                    massremotefifth = importatesfromftp(ftp, listdirectors, element)
+                    massremote[4] = importatesfromftp(ftp, listdirectors, element)
                 case _:
                     continue
         listdirectors.sort()
@@ -98,47 +72,23 @@ def scanfilesinremoteserver():
 
 # Проверка на разность данных в локальных папках и на удалённом сервере
 def comparisonlists():
-
-    # Первая папка
-    #result = list(set(locallist[1]) - set(massremotefirst))
-    result = list(set(masslocalfirst) - set(massremotefirst))
-    if result == []:
-        print("Первые\t\tпапки синхронизированны!")
-    else:
-        print("Разность первых папкок: ", result)
-        uploadfiles(1, result)
-
-    # Вторая папка
-    result = list(set(masslocalsecond) - set(massremotesecond))
-    if result == []:
-        print("Вторые\t\tпапки синхронизированны!")
-    else:
-        print("Разность вторых папкок: ", result)
-        uploadfiles(2, result)
-
-    # Третья папка
-    result = list(set(masslocalthird) - set(massremotethird))
-    if result == []:
-        print("Третьи\t\tпапки синхронизированны!")
-    else:
-        print("Разность третьих папкок: ", result)
-        uploadfiles(3, result)
-
-    # Четвёртая папка
-    result = list(set(masslocalfourth) - set(massremotefourth))
-    if result == []:
-        print("Четвёртые\tпапки синхронизированны!")
-    else:
-        print("Разность четвёртых папкок: ", result)
-        uploadfiles(4, result)
-
-    # Пятая папка
-    result = list(set(masslocalfifth) - set(massremotefifth))
-    if result == []:
-        print("Пятые\t\tпапки синхронизированны!")
-    else:
-        print("Разность пятых папкок: ", result)
-        uploadfiles(5, result)
+    for element in range(0, 5):
+        result = list(set(masslocal[element]) - set(massremote[element]))
+        if result == []:
+            match element:
+                case 0:
+                   print("Первые\t\tпапки синхронизированны!")
+                case 1:
+                    print("Вторые\t\tпапки синхронизированны!")
+                case 2:
+                    print("Третьи\t\tпапки синхронизированны!")
+                case 3:
+                    print("Четвёртые\tпапки синхронизированны!")
+                case 4:
+                    print("Пятые\t\tпапки синхронизированны!")
+        else:
+            print("Разность первых папкок: ", result)
+            uploadfiles(element + 1, result)
 
 # Переименование и перемещение картинки по необходимому локальному пути
 def renameanduploadimage(pathimage, folder):
@@ -328,15 +278,13 @@ def switcher(argument):
             t1 = Thread(target=collectionofinformation)
             t1.start()
         case times.timetoChangeCallCenter:
-            flag = True
             # Запускаем поток с функцией изменения call-центра
             t2 = Thread(target=changecallcenter)
             t2.start()
-            if flag == True:
-                timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
-                flag = False
+            if argument == datetime.time(19, 5).strftime("%H:%M"):
+                times.timetoChangeCallCenter = datetime.time(7, 40).strftime("%H:%M")
             else:
-                flag = True
+                times.timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
         # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t",argument)
