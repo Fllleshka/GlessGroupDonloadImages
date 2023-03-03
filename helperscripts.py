@@ -1,7 +1,6 @@
 import datetime
 import shutil
 import time
-
 from PIL import Image
 import os
 import requests
@@ -514,11 +513,16 @@ def collectionofinformation():
             dates.append(massinboundcalls[element])
             dates.append(converttoseconds(masssumtimes[element].total_seconds()))
 
-        # Записываем получившееся результаты в таблицу
-        i = 0
-        for element in dates:
-            worksheet.update_cell(newstr, i+1, dates[i])
-            i += 1
+        # Проверяем были ли записаны данные ранее
+        datesfromtabel = worksheet.row_values(newnumber+1)
+        if datesfromtabel[2] == dates[2]:
+            print("\t\tДанные уже были записаны")
+        else:
+            # Записываем получившееся результаты в таблицу
+            i = 0
+            for element in dates:
+                worksheet.update_cell(newstr, i+1, dates[i])
+                i += 1
 
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")

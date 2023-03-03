@@ -246,9 +246,10 @@ class times:
     # Перовначальное время сканирования
     timetoScan = today.time().strftime("%H:%M")
     # Время для работы изменения Call-центра
-    timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
-    # Время для сбора статистики по звонкам (01:00)
-    timetoCollectionOfInformation = datetime.time(1, 0).strftime("%H:%M")
+    #timetoChangeCallCenter = datetime.time(19, 10).strftime("%H:%M")
+    timetoChangeCallCenter = (today + datetime.timedelta(minutes=10)).strftime("%H:%M")
+    # Время для сбора статистики по звонкам (23:30)
+    timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
     # Время собрания (пока не используется)
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
 
@@ -270,8 +271,8 @@ def switcher(argument):
             if nexthour == 24:
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
-            print("Следующее время проверки:\t", times.timetoScan)
-
+            print("Следующее время синхронизации фотографий:\t", times.timetoScan)
+            collectionofinformation()
         # Время для сбора статистики call-центра
         case times.timetoCollectionOfInformation:
             # Запускаем поток с функцией сбора статистики call-центра
@@ -281,10 +282,11 @@ def switcher(argument):
             # Запускаем поток с функцией изменения call-центра
             t2 = Thread(target=changecallcenter)
             t2.start()
-            if argument == datetime.time(19, 5).strftime("%H:%M"):
-                times.timetoChangeCallCenter = datetime.time(7, 40).strftime("%H:%M")
-            else:
-                times.timetoChangeCallCenter = datetime.time(19, 5).strftime("%H:%M")
+            # Вычисление следующего времени сканирования
+            nexthour = datetime.datetime.today().hour + 1
+            if nexthour == 24:
+                nexthour = 0
+            times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
         # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t",argument)
