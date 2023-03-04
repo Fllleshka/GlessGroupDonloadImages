@@ -246,7 +246,6 @@ class times:
     # Перовначальное время сканирования
     timetoScan = today.time().strftime("%H:%M")
     # Время для работы изменения Call-центра
-    #timetoChangeCallCenter = datetime.time(19, 10).strftime("%H:%M")
     timetoChangeCallCenter = (today + datetime.timedelta(minutes=10)).strftime("%H:%M")
     # Время для сбора статистики по звонкам (23:30)
     timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
@@ -272,7 +271,6 @@ def switcher(argument):
                 nexthour = 0
             times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
             print("Следующее время синхронизации фотографий:\t", times.timetoScan)
-            collectionofinformation()
         # Время для сбора статистики call-центра
         case times.timetoCollectionOfInformation:
             # Запускаем поток с функцией сбора статистики call-центра

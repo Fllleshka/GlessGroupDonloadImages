@@ -22,10 +22,10 @@ def checkupdatedatesexcel():
     #print(f"Дата изменения фаила для работы: {file2}")
     # Вычисляем разницу времён
     diff_times = file1 - file2
-    print(f"Разница в датах изменений: {diff_times}")
+    #print(f"Разница в датах изменений: {diff_times}")
     # Устанавливаем количество часов для синхронизации фаилов
-    deltatime = datetime.timedelta(days=0, hours=12)
-    print(f"Таймер синхронизации: {deltatime}")
+    deltatime = datetime.timedelta(days=0, hours=0, minutes=5)
+    #print(f"Таймер синхронизации: {deltatime}")
     # Если deltatime меньше разницы во времени изменения файлов
     if deltatime < diff_times:
         print("Синхронизация требуется")
@@ -274,8 +274,8 @@ def createnewarrowincallcenter():
             print("\t\tДанные уже были записаны")
         # Если же эти данные не были записаны, записываем
         else:
-            greencolor = {"backgroundColor": {"red": 0.01, "green": 0.8, "blue": 0.01}, "horizontalAlignment": "CENTER"}
-            redcolor = {"backgroundColor": {"red": 0.8, "green": 0.01, "blue": 0.01,}, "horizontalAlignment": "CENTER"}
+            greencolor = {"backgroundColor": {"red": 0.63, "green": 1.0, "blue": 0.65}, "horizontalAlignment": "CENTER"}
+            redcolor = {"backgroundColor": {"red": 1.0, "green": 0.65, "blue": 0.63}, "horizontalAlignment": "CENTER"}
             # Добавляем строку в конец фаила логгирования
             worksheet.update_cell(newstr, 1, newnumber)
             worksheet.update_cell(newstr, 2, today)
@@ -424,6 +424,7 @@ def collectionofinformation():
                   f"\t{self.call_duration}"
                   f"\t\t{self.direction}"
                   f"\t\t{self.status}")
+
     try:
         # Дата начала отчёта (вчерашний день начало для)
         dateAndTimeStart = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
@@ -524,6 +525,31 @@ def collectionofinformation():
                 worksheet.update_cell(newstr, i+1, dates[i])
                 i += 1
 
+        # Выясняем кто работал в это день
+        workedmanagers = [0, 0, 0]
+        masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+        for element in numbermanagers:
+            urlforapi = urlapi + element + '/agent'
+            status = requests.get(urlforapi, headers=headers).text
+            for elem in range(0,3):
+                workedmanagers.append(status)
+
+        colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74}, "horizontalAlignment": "CENTER"}
+        coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77}, "horizontalAlignment": "CENTER"}
+
+        # Записываем получившееся результаты в таблицу
+        i = 0
+        for element in dates:
+            match workedmanagers[i]:
+                case '"ONLINE"':
+                    worksheet.update_cell(newstr, i + 1, dates[i])
+                    worksheet.format(masscolumns[i] + str(newstr), colorwork)
+                case '"OFFLINE"':
+                    worksheet.update_cell(newstr, i + 1, dates[i])
+                    worksheet.format(masscolumns[i] + str(newstr), coloroutput)
+                case _:
+                    worksheet.update_cell(newstr, i + 1, dates[i])
+            i += 1
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")
 
