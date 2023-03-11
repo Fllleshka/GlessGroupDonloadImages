@@ -276,6 +276,7 @@ def switcher(argument):
             # Запускаем поток с функцией сбора статистики call-центра
             t1 = Thread(target=collectionofinformation)
             t1.start()
+            time.sleep(60)
         case times.timetoChangeCallCenter:
             # Запускаем поток с функцией изменения call-центра
             t2 = Thread(target=changecallcenter)

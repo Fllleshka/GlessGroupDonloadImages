@@ -5,7 +5,6 @@ from PIL import Image
 import os
 import requests
 import win32com.client
-# Импорт баблиотеки для работы в APIGoogle
 import gspread
 from dates import *
 import openpyxl
@@ -245,7 +244,7 @@ def createnewarrowinlogs(lenphotos):
     except:
         print("Логгирование фотографий сломалось(")
 
-# Функция записи логов Call Cener
+# Функция записи логов Call Center
 def createnewarrowincallcenter():
     try:
         # Подключаемся к сервисному аккаунту
@@ -299,6 +298,8 @@ def createnewarrowincallcenter():
                 worksheet.format("F" + str(newstr), greencolor)
             else:
                 worksheet.format("F" + str(newstr), redcolor)
+            # Чтобы программа не крашилась из-за лимита количества запросов ставим sleep
+            time.sleep(60)
     except Exception as e:
         print(f"Логгирование call-центра сломалось: {e}")
 
@@ -525,31 +526,31 @@ def collectionofinformation():
                 worksheet.update_cell(newstr, i+1, dates[i])
                 i += 1
 
-        # Выясняем кто работал в это день
-        workedmanagers = [0, 0, 0]
-        masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
-        for element in numbermanagers:
-            urlforapi = urlapi + element + '/agent'
-            status = requests.get(urlforapi, headers=headers).text
-            for elem in range(0,3):
-                workedmanagers.append(status)
+            # Выясняем кто работал в это день
+            workedmanagers = [0, 0, 0]
+            masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+            for element in numbermanagers:
+                urlforapi = urlapi + element + '/agent'
+                status = requests.get(urlforapi, headers=headers).text
+                for elem in range(0, 3):
+                    workedmanagers.append(status)
 
-        colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74}, "horizontalAlignment": "CENTER"}
-        coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77}, "horizontalAlignment": "CENTER"}
+            colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74}, "horizontalAlignment": "CENTER"}
+            coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77}, "horizontalAlignment": "CENTER"}
 
-        # Записываем получившееся результаты в таблицу
-        i = 0
-        for element in dates:
-            match workedmanagers[i]:
-                case '"ONLINE"':
-                    worksheet.update_cell(newstr, i + 1, dates[i])
-                    worksheet.format(masscolumns[i] + str(newstr), colorwork)
-                case '"OFFLINE"':
-                    worksheet.update_cell(newstr, i + 1, dates[i])
-                    worksheet.format(masscolumns[i] + str(newstr), coloroutput)
-                case _:
-                    worksheet.update_cell(newstr, i + 1, dates[i])
-            i += 1
+            # Записываем получившееся результаты в таблицу
+            i = 0
+            for element in dates:
+                match workedmanagers[i]:
+                    case '"ONLINE"':
+                        worksheet.update_cell(newstr, i + 1, dates[i])
+                        worksheet.format(masscolumns[i] + str(newstr), colorwork)
+                    case '"OFFLINE"':
+                        worksheet.update_cell(newstr, i + 1, dates[i])
+                        worksheet.format(masscolumns[i] + str(newstr), coloroutput)
+                    case _:
+                        worksheet.update_cell(newstr, i + 1, dates[i])
+                i += 1
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")
 
