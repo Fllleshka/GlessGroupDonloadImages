@@ -176,16 +176,15 @@ def chosedates(dates):
 
 # Функция активирования менеджеров
 def selectmenegers(managerlists):
-    #print(f"Листо менеджеров: {managerlists}")
     # Выясняем текущй день
     today = datetime.datetime.today()
     todayday = int(today.strftime("%d"))
     print("Сегодня:", todayday, today.strftime("%B"), int(today.strftime("%Y")))
     flag = True
+    massworkmanagers = []
     try:
         # Изменяем статусы менеджеров call центра
         for element in managerlists:
-
             if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
                 numbermanager = numbermanagers[massmanagers.index(element[0])]
                 print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
@@ -210,8 +209,15 @@ def selectmenegers(managerlists):
                     flag = False
                     print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
                 else:
+                    # Дополнительное условие для последнего менеджера
+                    massworkmanagers.append(element[todayday])
+                    if len(massworkmanagers) == 4:
+                        # Если 3 других менеджера работают, то 4 должен быть отключён
+                        if (massworkmanagers[0] == '9.0' or massworkmanagers[0] == '10.0') and (massworkmanagers[1] == '9.0' or massworkmanagers[1] == '10.0') and (massworkmanagers[2] == '9.0' or massworkmanagers[2] == '10.0'):
+                            requests.put(urlforapi, params=paramoffline, headers=headers)
                     statusget = requests.get(urlforapi, headers=headers).text
                     print("\tСтатус менеджера: ", element[0], " = ", statusget)
+
         if flag == True:
             return "\tCall центр успешно настроен."
         else:
@@ -535,8 +541,9 @@ def collectionofinformation():
                 for elem in range(0, 3):
                     workedmanagers.append(status)
 
-            colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74}, "horizontalAlignment": "CENTER"}
-            coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77}, "horizontalAlignment": "CENTER"}
+            colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74}, "horizontalAlignment": "CENTER", "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"}, "left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
+            coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77}, "horizontalAlignment": "CENTER", "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"}, "left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
+            colornone = {"borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"},"left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
 
             # Записываем получившееся результаты в таблицу
             i = 0
@@ -550,6 +557,7 @@ def collectionofinformation():
                         worksheet.format(masscolumns[i] + str(newstr), coloroutput)
                     case _:
                         worksheet.update_cell(newstr, i + 1, dates[i])
+                        worksheet.format(masscolumns[i] + str(newstr), colornone)
                 i += 1
     except Exception as e:
         print(f"Логгирование статистики по звонкам сломалось: {e}")
