@@ -217,7 +217,8 @@ def scanfolderforimages():
                     shutil.rmtree(path)
                 except Exception as e:
                     print("Удаление невозможно. По причине ", e)
-        updatedatesuploadphotos(massnewphotos)
+        t1 = Thread(target=updatedatesuploadphotos, args=(massnewphotos,))
+        t1.start()
         print("Удаление папок завершено")
 
 # Функция сбора статистики по загруженным фотографиям
