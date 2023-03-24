@@ -1,7 +1,9 @@
+import os
 from ftplib import FTP
 from helperscripts import *
 from threading import Thread
 import pythoncom
+import win32security
 
 masslocal = [[], [], [], [], []]
 massremote = [[], [], [], [], []]
@@ -139,6 +141,8 @@ def uploadfiles(numberfolder, result):
 
 # Функция папки с фотографиями для разбора и сортировка их по необходимым папкам с нужными номерами
 def scanfolderforimages():
+    # Массив загруженных фотографий
+    massnewphotos = [0, 0, 0, 0, 0]
     # Получаем лист фаилов находящихся по адресу
     list = os.listdir(mainpath)
     # Проверка наличия фотографий
@@ -187,6 +191,8 @@ def scanfolderforimages():
                             else:
                                 # Выясняем путь к фаилу
                                 pathimage = pathfolder + "/" + elem
+                                # Функция сбора статистики по загруженным фотографиям
+                                massnewphotos = statisticsphotos(pathimage, massnewphotos)
                                 # Уменьшение веса и подгонка фотографии
                                 convertimage(pathimage)
                                 # Переименоваие и загрузка фотографии
@@ -204,15 +210,58 @@ def scanfolderforimages():
                 except PermissionError:
                     pass
             else:
-                # Выясняем путь к фаилу
+                # Выясняем путь к папке
                 path = mainpath + "/" + elem
                 # Удаляем полностью папку
                 try:
                     shutil.rmtree(path)
                 except Exception as e:
                     print("Удаление невозможно. По причине ", e)
-
+        updatedatesuploadphotos(massnewphotos)
         print("Удаление папок завершено")
+
+# Функция сбора статистики по загруженным фотографиям
+def statisticsphotos(pathimage, massnewphotos):
+    sd = win32security.GetFileSecurity(pathimage, win32security.OWNER_SECURITY_INFORMATION)
+    owner_sid = sd.GetSecurityDescriptorOwner()
+    match (str(owner_sid)):
+        case masssotr.PySID_fleysner:
+            massnewphotos[0] += 1
+        case masssotr.PySID_kireev:
+            massnewphotos[1] += 1
+        case masssotr.PySID_pushkar:
+            massnewphotos[2] += 1
+        case masssotr.PySID_ivanov:
+            massnewphotos[3] += 1
+        case _:
+            massnewphotos[4] += 1
+    return massnewphotos
+
+# Функция записи статистики по загруженным фотографиям в GoogleDocs
+def updatedatesuploadphotos(massnewphotos):
+    try:
+        # Подключаемся к сервисному аккаунту
+        gc = gspread.service_account(CREDENTIALS_FILE)
+        # Подключаемся к таблице по ключу таблицы
+        table = gc.open_by_key(sheetkey)
+        # Открываем нужный лист
+        worksheet = table.worksheet("LogsPhotos")
+        # Получаем данные из ячеек
+        massolddates = [int(worksheet.get_values(masssotr.CellTable_fleysner)[0][0]), int(worksheet.get_values(masssotr.CellTable_kireev)[0][0]), int(worksheet.get_values(masssotr.CellTable_pushkar)[0][0]), int(worksheet.get_values(masssotr.CellTable_ivanov)[0][0]), int(worksheet.get_values(masssotr.CellTable_none)[0][0])]
+        # Новый массив для результата сложения
+        newmass = []
+        # Прибавляем новые значения к старым
+        for elementfirst, elementsecond in zip(massolddates, massnewphotos):
+            newmass += [elementfirst + elementsecond]
+        # Обновляем значения в таблице
+        worksheet.update(masssotr.CellTable_fleysner, newmass[0])
+        worksheet.update(masssotr.CellTable_kireev, newmass[1])
+        worksheet.update(masssotr.CellTable_pushkar, newmass[2])
+        worksheet.update(masssotr.CellTable_ivanov, newmass[3])
+        worksheet.update(masssotr.CellTable_none, newmass[4])
+
+    except Exception as e:
+        print(f"Логгирование статистики фотографий сломалось: {e}")
 
 # Функция изменения Call центра
 def changecallcenter():
