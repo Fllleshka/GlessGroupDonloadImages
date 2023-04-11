@@ -1,4 +1,3 @@
-import os
 from ftplib import FTP
 from helperscripts import *
 from threading import Thread
@@ -10,11 +9,8 @@ massremote = [[], [], [], [], []]
 
 # Функция формирования путей до папок на сервере картинок
 def scanfilesinlocalserver():
-
     global masslocal
     i = 0
-    # Главный путь к папкам
-    mainpath = '//192.168.20.215/фото товара'
     # Пробегаемся по массиву
     for element in os.listdir(mainpath):
         # Формируем путь к папкам
@@ -89,13 +85,29 @@ def comparisonlists():
                 case 4:
                     print("Пятые\t\tпапки синхронизированны!")
         else:
-            print("Разность первых папкок: ", result)
-            uploadfiles(element + 1, result)
+            match element:
+                case 0:
+                    print("Разность первых папкок: ", result)
+                    uploadfiles(element + 1, result)
+                case 1:
+                    print("Разность вторых папкок: ", result)
+                    uploadfiles(element + 1, result)
+                case 2:
+                    print("Разность третьих папкок: ", result)
+                    uploadfiles(element + 1, result)
+                case 3:
+                    print("Разность четвёртых папкок: ", result)
+                    uploadfiles(element + 1, result)
+                case 4:
+                    print("Разность пятых папкок: ", result)
+                    uploadfiles(element + 1, result)
+
 
 # Переименование и перемещение картинки по необходимому локальному пути
 def renameanduploadimage(pathimage, folder):
+    lenmailfolder = 62
     # Начинаем с переименования картинки
-    numberfolderfirst = str(pathimage)[53:]
+    numberfolderfirst = str(pathimage)[lenmailfolder:]
     # Если папка четырёхзначная
     if numberfolderfirst[4] == "/":
         numberfoldersecond = str(numberfolderfirst)[:4]
@@ -106,7 +118,7 @@ def renameanduploadimage(pathimage, folder):
     # Название картинки
     namepic = numberfoldersecond + str(pathimage)[-4:]
     # Новый путь к картинке
-    convertname = str(pathimage)[:53] + numberfoldersecond + "/" + namepic
+    convertname = str(pathimage)[:lenmailfolder] + numberfoldersecond + "/" + namepic
     # Переименование картинки
     os.rename(pathimage, convertname)
 
@@ -116,8 +128,7 @@ def renameanduploadimage(pathimage, folder):
 
 # Функция загрузки фотографий на сервер
 def uploadfiles(numberfolder, result):
-    # Главный путь к папкам
-    mainpath = '//192.168.20.215/фото товара/'
+    # Путь к элементу
     pathtofolder = mainpath + str(numberfolder) + "/"
 
     # Подключение к удалённому серверу по FTP
@@ -144,7 +155,7 @@ def scanfolderforimages():
     # Массив загруженных фотографий
     massnewphotos = [0, 0, 0, 0, 0]
     # Получаем лист фаилов находящихся по адресу
-    list = os.listdir(mainpath)
+    list = os.listdir(mainpathanalysis)
     # Проверка наличия фотографий
     # Если папок для разбора нет
     if list == []:
@@ -160,7 +171,7 @@ def scanfolderforimages():
             # Обыгрывание Thumbs.db
             if element == "Thumbs.db":
                 # Выясняем путь к этому фаилу
-                path = mainpath + "/" + element
+                path = mainpathanalysis + "/" + element
                 # Пытаемся удалить данный фаил
                 try:
                     if os.access(path, os.R_OK and os.X_OK):
@@ -171,7 +182,7 @@ def scanfolderforimages():
             # Если же это не фаил Thumbs.db
             else:
                 # Выясняем путь к этому фаилу
-                pathfolder = mainpath + "/" + element
+                pathfolder = mainpathanalysis + "/" + element
                 # Получаем данные о фаилах по этому пути
                 nextlist = os.listdir(pathfolder)
                 # Если папка пуста то пишем о пустой папке
@@ -203,7 +214,7 @@ def scanfolderforimages():
         for elem in list:
             # Обыгрывание Thumbs.db
             if element == "Thumbs.db":
-                path = mainpath + "/" + element
+                path = mainpathanalysis + "/" + element
                 try:
                     if os.access(path, os.R_OK and os.X_OK):
                         os.remove(path)
@@ -211,7 +222,7 @@ def scanfolderforimages():
                     pass
             else:
                 # Выясняем путь к папке
-                path = mainpath + "/" + elem
+                path = mainpathanalysis + "/" + elem
                 # Удаляем полностью папку
                 try:
                     shutil.rmtree(path)
