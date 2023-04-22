@@ -579,3 +579,59 @@ def converttoseconds(totseconds):
     minutes, seconds = divmod(remainder, 60)
     result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
     return result
+
+# Функция сохранения статистики по загруженным фотографиям
+def generationstatuploadphotos():
+    try:
+        # Проверяем дату сегодняшнюю
+        today = datetime.datetime.today()
+        todaytime = today.strftime("%d")
+        print(f"Сегодняшнее числo: {todaytime}")
+        # Проверяем если начало месяца (01 число)
+        if todaytime == "01":
+            print(f"Сегодняшнее числo: {todaytime}")
+            # Вычисляем месяц за который сохраняем статистику
+            statmonth = today.replace(day=15).strftime("%B")
+            statyear = today.replace(day=15).strftime("%Y")
+            statmonthandyear = statmonth + " " + statyear
+
+            # Вычисляем последнюю строку для записи статистики
+            # Подключаемся к сервисному аккаунту
+            gc = gspread.service_account(CREDENTIALS_FILE)
+            # Подключаемся к таблице по ключу таблицы
+            table = gc.open_by_key(sheetkey)
+            # Открываем нужный лист
+            worksheet = table.worksheet("LogsPhotos")
+            # Получаем номер строки для записи в стоблце L
+            newstr = len(worksheet.col_values(12)) + 1
+
+            # Получаем данные из столбца H
+            massvalues = worksheet.get_values('H2:H6')
+            massvalues2 = []
+            sumphotos = 0
+            # Преобразовываем массив
+            for element in massvalues:
+                massvalues2.append(int(element[0]))
+                sumphotos += int(element[0])
+
+            colornone = {"borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"}, "left": {"style": "SOLID"},"right": {"style": "SOLID"}}}
+            masscolumns = ["L", "M", "N", "O", "P", "Q", "R"]
+
+            # Запись данных в табличку
+            for element in range (0, 7):
+                column = element + 12
+                if column == 12:
+                    worksheet.update_cell(newstr, column, statmonthandyear)
+                    worksheet.format(masscolumns[element] + str(newstr), colornone)
+                elif column == 18:
+                    worksheet.update_cell(newstr, column, sumphotos)
+                    worksheet.format(masscolumns[element] + str(newstr), colornone)
+                else:
+                    worksheet.update_cell(newstr, column, massvalues2[element-1])
+                    worksheet.format(masscolumns[element] + str(newstr), colornone)
+
+            # Обнуляем значения, которые подсчитываются онлайн
+            for element in range(2,7):
+                worksheet.update_cell(element, 8, 0)
+    except Exception as e:
+        print(f"Логгирование статистики фотографий сломалось: {e}")
