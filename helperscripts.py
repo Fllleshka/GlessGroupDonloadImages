@@ -341,6 +341,13 @@ def createnewarrowincallcenter2():
     except Exception as e:
         print(f"Логгирование call-центра сломалось: {e}")
 
+# Вспомогательная функция для importatesfromftp с преобразованием в номальный формат даты
+def get_datetime_format(date_time):
+    # Преобразовать в объект даты и времени
+    date_time = datetime.strptime(date_time, '%Y%m%d%H%M%S')
+    # Преобразовать в удобочитаемую строку даты и времени
+    return date_time.strftime('%Y/%m/%d %H:%M:%S')
+
 # Функция импорта данных
 def importatesfromftp(ftp, listdirectors, element):
     # Добавляем элемент в лист
@@ -356,6 +363,11 @@ def importatesfromftp(ftp, listdirectors, element):
     list.pop(0)
     # Сортируем фаилы по возрастанию
     list.sort()
+    # Достаём данные о временных датах картинок на сервере
+    for file_data in ftp.mlsd():
+        data1 = file_data[1]['modify']
+        data2 = datetime.datetime.strptime(data1, '%Y%m%d%H%M%S')
+        #print(f"{data1}\t{data2}")
     # Добавляем данные в массив
     returnmass = list
     # Возвращаем полученный список
@@ -633,5 +645,10 @@ def generationstatuploadphotos():
             # Обнуляем значения, которые подсчитываются онлайн
             for element in range(2,7):
                 worksheet.update_cell(element, 8, 0)
+
+            # Записываем дату с коротой считаются фотографии
+            nulldate = today.strftime("%d %B %Y")
+            worksheet.update_cell(2, 9, nulldate)
+
     except Exception as e:
         print(f"Логгирование статистики фотографий сломалось: {e}")

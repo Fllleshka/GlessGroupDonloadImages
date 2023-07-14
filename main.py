@@ -308,14 +308,14 @@ class times:
     timetoScan = today.time().strftime("%H:%M")
     #timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
     # Время для работы изменения Call-центра
-    timetoChangeCallCenter = (today + datetime.timedelta(minutes=10)).strftime("%H:%M")
+    timetoChangeCallCenter = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
     # Время для сбора статистики по звонкам
-    timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
-    #timetoCollectionOfInformation = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
+    #timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
+    timetoCollectionOfInformation = (today + datetime.timedelta(minutes=5)).strftime("%H:%M")
     # Время собрания (пока не используется)
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
     # Время сбора статистики по месячной работе прикрепления фотографий к кароточкам товаров
-    timetoGenerationStatUploadPhotos = datetime.time(2, 0).strftime("%H:%M")
+    timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
     #timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
 
 # Функция выбора действия от времени
