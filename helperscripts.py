@@ -363,11 +363,6 @@ def importatesfromftp(ftp, listdirectors, element):
     list.pop(0)
     # Сортируем фаилы по возрастанию
     list.sort()
-    # Достаём данные о временных датах картинок на сервере
-    for file_data in ftp.mlsd():
-        data1 = file_data[1]['modify']
-        data2 = datetime.datetime.strptime(data1, '%Y%m%d%H%M%S')
-        #print(f"{data1}\t{data2}")
     # Добавляем данные в массив
     returnmass = list
     # Возвращаем полученный список

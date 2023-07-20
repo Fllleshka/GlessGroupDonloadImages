@@ -1,6 +1,7 @@
 import datetime
 from ftplib import FTP
 from helperscripts import *
+from classes import *
 from threading import Thread
 import pythoncom
 import win32security
@@ -299,31 +300,21 @@ def offcallcenter():
     else:
         return
 
-# Класс времён
-class times:
-    # Время сейчас
-    today = datetime.datetime.today()
-    todaytime = today.strftime("%H:%M:%S")
-    # Первоначальное время сканирования
-    timetoScan = today.time().strftime("%H:%M")
-    #timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
-    # Время для работы изменения Call-центра
-    timetoChangeCallCenter = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
-    # Время для сбора статистики по звонкам
-    #timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
-    timetoCollectionOfInformation = (today + datetime.timedelta(minutes=5)).strftime("%H:%M")
-    # Время собрания (пока не используется)
-    #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
-    # Время сбора статистики по месячной работе прикрепления фотографий к кароточкам товаров
-    timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
-    #timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
-
 # Функция выбора действия от времени
 def switcher(argument):
     match argument:
         # Время сканирования папки
         case times.timetoScan:
-            # Сканируем папку на наличии фотографий для загрузки
+            # Инициализация класса
+            x = class_photos()
+            # Вызов функции сканирования локальных папок
+            #x.scanfolderforimages()
+            # Вызов функции сканирования удалённых папок
+            #x.scanfilesinremoteserver()
+            # Вызов функции выявления различия файлов на локальном и удалённом сервере
+            #x.comparisonlists()
+
+            # Сканируем папку для разбора фотографий
             scanfolderforimages()
             # Сканируем локальные папки с фотографиями
             scanfilesinlocalserver()
@@ -331,6 +322,7 @@ def switcher(argument):
             scanfilesinremoteserver()
             # Проверка различия локальной у удалённой папки
             comparisonlists()
+
             # Вычисление следующего времени сканирования
             nexthour = datetime.datetime.today().hour + 1
             if nexthour == 24:
