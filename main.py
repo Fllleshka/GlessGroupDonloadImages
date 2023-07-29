@@ -1,4 +1,5 @@
 import datetime
+import time
 from ftplib import FTP
 from helperscripts import *
 from classes import *
@@ -8,101 +9,6 @@ import win32security
 
 masslocal = [[], [], [], [], []]
 massremote = [[], [], [], [], []]
-
-# Функция формирования путей до папок на сервере картинок
-def scanfilesinlocalserver():
-    global masslocal
-    i = 0
-    # Пробегаемся по массиву
-    for element in os.listdir(mainpath):
-        # Формируем путь к папкам
-        pathfolder = mainpath + "/" + element
-        match element:
-            case "1":
-                masslocal[0] = os.listdir(pathfolder)
-                masslocal[0].remove('Thumbs.db')
-            case "2":
-                masslocal[1] = os.listdir(pathfolder)
-                masslocal[1].remove('Thumbs.db')
-            case "3":
-                masslocal[2] = os.listdir(pathfolder)
-                masslocal[2].remove('Thumbs.db')
-            case "4":
-                masslocal[3] = os.listdir(pathfolder)
-                masslocal[3].remove('Thumbs.db')
-            case "5":
-                masslocal[4] = os.listdir(pathfolder)
-                masslocal[4].remove('Thumbs.db')
-            case _:
-                continue
-
-# Функция сканируемых данных на удалённом сервере
-def scanfilesinremoteserver():
-    global massremote
-    try:
-        # Данные для связи с удалённым сервером
-        ftp = FTP(nameSite)
-        ftp.login(ftpLogin, ftpPass)
-        # Получаем данные о том какие данные есть на удалённом сервере
-        listalldirectors = ftp.nlst()
-        listdirectors = []
-        for element in listalldirectors:
-            match element:
-                # Первая папка для синхронизации
-                case "1":
-                    massremote[0] = importatesfromftp(ftp, listdirectors, element)
-                # Вторая папка для синхронизации
-                case "2":
-                    massremote[1] = importatesfromftp(ftp, listdirectors, element)
-                # Третья папка для синхронизации
-                case "3":
-                    massremote[2] = importatesfromftp(ftp, listdirectors, element)
-                # Четвёртая папка для синхронизации
-                case "4":
-                    massremote[3] = importatesfromftp(ftp, listdirectors, element)
-                # Пятая папка для синхронизации
-                case "5":
-                    massremote[4] = importatesfromftp(ftp, listdirectors, element)
-                case _:
-                    continue
-        listdirectors.sort()
-    except:
-        print("Синхронизация папок не удалась. Попробуем в следующий раз")
-        return
-
-# Проверка на разность данных в локальных папках и на удалённом сервере
-def comparisonlists():
-    for element in range(0, 5):
-        result = list(set(masslocal[element]) - set(massremote[element]))
-        if result == []:
-            match element:
-                case 0:
-                   print("Первые\t\tпапки синхронизированны!")
-                case 1:
-                    print("Вторые\t\tпапки синхронизированны!")
-                case 2:
-                    print("Третьи\t\tпапки синхронизированны!")
-                case 3:
-                    print("Четвёртые\tпапки синхронизированны!")
-                case 4:
-                    print("Пятые\t\tпапки синхронизированны!")
-        else:
-            match element:
-                case 0:
-                    print("Разность первых папкок: ", result)
-                    uploadfiles(element + 1, result)
-                case 1:
-                    print("Разность вторых папкок: ", result)
-                    uploadfiles(element + 1, result)
-                case 2:
-                    print("Разность третьих папкок: ", result)
-                    uploadfiles(element + 1, result)
-                case 3:
-                    print("Разность четвёртых папкок: ", result)
-                    uploadfiles(element + 1, result)
-                case 4:
-                    print("Разность пятых папкок: ", result)
-                    uploadfiles(element + 1, result)
 
 # Переименование и перемещение картинки по необходимому локальному пути
 def renameanduploadimage(pathimage, folder):
@@ -150,88 +56,6 @@ def uploadfiles(numberfolder, result):
             file.close()
     print("Синхронизация папки ", numberfolder, " завершена.")
     ftp.quit()
-
-# Функция папки с фотографиями для разбора и сортировка их по необходимым папкам с нужными номерами
-def scanfolderforimages():
-    # Массив загруженных фотографий
-    massnewphotos = [0, 0, 0, 0, 0]
-    # Получаем лист фаилов находящихся по адресу
-    list = os.listdir(mainpathanalysis)
-    # Проверка наличия фотографий
-    # Если папок для разбора нет
-    if list == []:
-        print("\tДанные по импорту фотографий из папки для разбора отсутствуют")
-    # Если есть папки для разбора
-    else:
-        # Выясняем количество папок
-        lenphotos = len(list)
-        # Логгирование фотографий
-        createnewarrowinlogs(lenphotos)
-        # Пробегаемся по элеметам
-        for element in list:
-            # Обыгрывание Thumbs.db
-            if element == "Thumbs.db":
-                # Выясняем путь к этому фаилу
-                path = mainpathanalysis + "/" + element
-                # Пытаемся удалить данный фаил
-                try:
-                    if os.access(path, os.R_OK and os.X_OK):
-                        os.remove(path)
-                except PermissionError:
-                    # Оператор заглушка равноценная отсутствию операции
-                    pass
-            # Если же это не фаил Thumbs.db
-            else:
-                # Выясняем путь к этому фаилу
-                pathfolder = mainpathanalysis + "/" + element
-                # Получаем данные о фаилах по этому пути
-                nextlist = os.listdir(pathfolder)
-                # Если папка пуста то пишем о пустой папке
-                if nextlist == []:
-                    print("\t Папка ", element, " пуста")
-                # Если папка не пуста
-                else:
-                    numberfolder = 1
-                    for elem in nextlist:
-                        # Обыгрывание Thumbs.db
-                        if elem == "Thumbs.db":
-                            continue
-                        else:
-                            # Условие перебора количества фотографий, так как 6 папки нету
-                            if numberfolder >= 6:
-                                break
-                            else:
-                                # Выясняем путь к фаилу
-                                pathimage = pathfolder + "/" + elem
-                                # Функция сбора статистики по загруженным фотографиям
-                                massnewphotos = statisticsphotos(pathimage, massnewphotos)
-                                # Уменьшение веса и подгонка фотографии
-                                convertimage(pathimage)
-                                # Переименоваие и загрузка фотографии
-                                renameanduploadimage(pathimage, numberfolder)
-                                # Увеличиваем счётчик
-                                numberfolder = numberfolder + 1
-        # После окончания загрузки фотографий по папкам удаляем папку
-        for elem in list:
-            # Обыгрывание Thumbs.db
-            if element == "Thumbs.db":
-                path = mainpathanalysis + "/" + element
-                try:
-                    if os.access(path, os.R_OK and os.X_OK):
-                        os.remove(path)
-                except PermissionError:
-                    pass
-            else:
-                # Выясняем путь к папке
-                path = mainpathanalysis + "/" + elem
-                # Удаляем полностью папку
-                try:
-                    shutil.rmtree(path)
-                except Exception as e:
-                    print("Удаление невозможно. По причине ", e)
-        t1 = Thread(target=updatedatesuploadphotos, args=(massnewphotos,))
-        t1.start()
-        print("Удаление папок завершено")
 
 # Функция сбора статистики по загруженным фотографиям
 def statisticsphotos(pathimage, massnewphotos):
@@ -306,22 +130,13 @@ def switcher(argument):
         # Время сканирования папки
         case times.timetoScan:
             # Инициализация класса
-            x = class_photos()
+            x = class_photos(argument)
             # Вызов функции сканирования локальных папок
-            #x.scanfolderforimages()
+            x.scanfolderforimages()
             # Вызов функции сканирования удалённых папок
-            #x.scanfilesinremoteserver()
+            x.scanfilesinremoteserver()
             # Вызов функции выявления различия файлов на локальном и удалённом сервере
-            #x.comparisonlists()
-
-            # Сканируем папку для разбора фотографий
-            scanfolderforimages()
-            # Сканируем локальные папки с фотографиями
-            scanfilesinlocalserver()
-            # Сканируем удалённые папки с фотографиями
-            scanfilesinremoteserver()
-            # Проверка различия локальной у удалённой папки
-            comparisonlists()
+            x.comparisonlists()
 
             # Вычисление следующего времени сканирования
             nexthour = datetime.datetime.today().hour + 1

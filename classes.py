@@ -1,6 +1,7 @@
 import time
 import datetime
 import os
+from collections import namedtuple
 
 from tqdm import tqdm
 from ftplib import FTP
@@ -24,9 +25,11 @@ class times:
     # Время сбора статистики по месячной работе прикрепления фотографий к карточкам товаров
     #timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
     timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=7)).strftime("%H:%M")
+    # Время для проверки 2.0 на сканирование фотографий
+    timetoScan_2_0 = datetime.time(3, 15).strftime("%H:%M")
 
 # Класс работы с фотографиями
-class class_photos():
+class class_photos(object):
     # Массив локальных файлов
     masslocal = [[], [], [], [], []]
     # Массив дат создания локальных файлов
@@ -35,6 +38,9 @@ class class_photos():
     massremote = [[], [], [], [], []]
     # Массив дат создания удалённых файлов
     massremotedates = [[], [], [], [], []]
+
+    def __init__(self, argument):
+        self.date = argument
 
     # Функция сканирования локальных папок с фотографиями
     def scanfolderforimages(self):
@@ -61,21 +67,22 @@ class class_photos():
                     self.masslocal[4].remove('Thumbs.db')
                 case _:
                     continue
-        print(f"Начинаем сканирование данных времени из локальных папок")
-        time.sleep(2)
-        # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
-        for element in tqdm(self.masslocal):
-            # Вычисляем номер папки
-            numberfolder = self.masslocal.index(element) + 1
-            # Запускам цикл по фотографиям, которые находятся в папках
-            for elem in element:
-                # Формируем путь к элементу
-                pathphoto = mainpath + str(numberfolder) + "/" + str(elem)
-                # Вычисляем дату создания фотографии
-                datephoto = os.stat(pathphoto).st_ctime
-                # Добавляем данные по результатам в массив
-                dateandtime = datetime.datetime.fromtimestamp(datephoto).strftime('%Y %m %d %H:%M:%S')
-                self.masslocaldates[numberfolder-1].append(dateandtime)
+        # Если время для продвинутого сканирования, запускаем
+        if self.date == times.timetoScan_2_0:
+            print(f"Начинаем сканирование данных времени из локальных папок")
+            # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
+            for element in tqdm(self.masslocal):
+                # Вычисляем номер папки
+                numberfolder = self.masslocal.index(element) + 1
+                # Запускам цикл по фотографиям, которые находятся в папках
+                for elem in element:
+                    # Формируем путь к элементу
+                    pathphoto = mainpath + str(numberfolder) + "/" + str(elem)
+                    # Вычисляем дату создания фотографии
+                    datephoto = os.stat(pathphoto).st_ctime
+                    # Добавляем данные по результатам в массив
+                    dateandtime = datetime.datetime.fromtimestamp(datephoto).strftime('%Y %m %d %H:%M:%S')
+                    self.masslocaldates[numberfolder-1].append(dateandtime)
 
     # Функция сканирования удалённых папкок с фотографиями
     def scanfilesinremoteserver(self):
@@ -108,25 +115,26 @@ class class_photos():
                         continue
             # Закрываем соединение с удалённым сервером
             datesftp.close()
-
-            # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
-            for element in tqdm(self.massremote):
-                # Открываем связь с удалённым сервером
-                datesftp = FTP(nameSite)
-                datesftp.login(ftpLogin, ftpPass)
-                # Вычисляем номер папки
-                numberfolder = self.massremote.index(element) + 1
-                # Запускам цикл по фотографиям, которые находятся в папках
-                for elem in element:
-                    # Формируем путь к элементу
-                    remotepathphoto = "/" + str(numberfolder) + "/" + str(elem)
-                    self.importremotedatesfromftp(datesftp, remotepathphoto, numberfolder)
-                    # Вычисляем дату создания фотографии
-                    #datephoto = os.stat(pathphoto).st_ctime
-                    # Добавляем данные по результатам в массив
-                    #self.masslocaldates[numberfolder - 1].append(time.ctime(datephoto))
-                # Закрываем соединение с удалённым сервером
-                datesftp.close()
+            # Если время для продвинутого сканирования, запускаем
+            if self.date == times.timetoScan_2_0:
+                # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
+                for element in tqdm(self.massremote):
+                    # Открываем связь с удалённым сервером
+                    datesftp = FTP(nameSite)
+                    datesftp.login(ftpLogin, ftpPass)
+                    # Вычисляем номер папки
+                    numberfolder = self.massremote.index(element) + 1
+                    # Запускам цикл по фотографиям, которые находятся в папках
+                    for elem in element:
+                        # Формируем путь к элементу
+                        remotepathphoto = "/" + str(numberfolder) + "/" + str(elem)
+                        self.importremotedatesfromftp(datesftp, remotepathphoto, numberfolder)
+                        # Вычисляем дату создания фотографии
+                        #datephoto = os.stat(pathphoto).st_ctime
+                        # Добавляем данные по результатам в массив
+                        #self.masslocaldates[numberfolder - 1].append(time.ctime(datephoto))
+                    # Закрываем соединение с удалённым сервером
+                    datesftp.close()
         except Exception as e:
             print("Синхронизация папок не удалась. Попробуем в следующий раз.")
             print(f"\t{e}")
@@ -165,15 +173,57 @@ class class_photos():
     # Функция различия локальной у удалённой папки
     def comparisonlists(self):
         for element in range(0, 5):
-            resultphotos = list(set(self.masslocal[element]) - set(self.massremote[element]))
-            if resultphotos == []:
-                resultdates = list(set(self.masslocaldates[element]) - set(self.massremotedates[element]))
-                print("====================================")
-                mass = []
-                for elem in self.masslocaldates:
-                    for i in elem:
-                        print(f"\t{i}\t\t{self.elem.index(i)}")
-                    #mass.append([elem, )
-                print("====================================")
+            result = list(set(self.masslocal[element]) - set(self.massremote[element]))
+            if result == []:
+                match element:
+                    case 0:
+                        print("Первые\t\tпапки синхронизированны!")
+                    case 1:
+                        print("Вторые\t\tпапки синхронизированны!")
+                    case 2:
+                        print("Третьи\t\tпапки синхронизированны!")
+                    case 3:
+                        print("Четвёртые\tпапки синхронизированны!")
+                    case 4:
+                        print("Пятые\t\tпапки синхронизированны!")
             else:
-                print(123)
+                match element:
+                    case 0:
+                        print("Разность первых папкок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 1:
+                        print("Разность вторых папкок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 2:
+                        print("Разность третьих папкок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 3:
+                        print("Разность четвёртых папкок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 4:
+                        print("Разность пятых папкок: ", result)
+                        self.uploadfiles(element + 1, result)
+
+    # Функция загрузки фотографий на сервер
+    def uploadfiles(self, numberfolder, result):
+        # Путь к элементу
+        pathtofolder = mainpath + str(numberfolder) + "/"
+
+        # Подключение к удалённому серверу по FTP
+        ftp = FTP(nameSite)
+        ftp.login(ftpLogin, ftpPass)
+        ftppath = "/" + str(numberfolder) + "/"
+        ftp.cwd(ftppath)
+
+        # Перебираем элементы
+        for element in result:
+            if element == "Thumbs.db":
+                continue
+            else:
+                path = pathtofolder + element
+                # file = open(element, "rb")
+                with open(path, "rb") as file:
+                    ftp.storbinary("STOR " + element, file)
+                file.close()
+        print("Синхронизация папки ", numberfolder, " завершена.")
+        ftp.quit()
