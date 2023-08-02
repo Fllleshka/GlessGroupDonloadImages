@@ -129,8 +129,11 @@ def switcher(argument):
     match argument:
         # Время сканирования папки
         case times.timetoScan:
+            printer(times.timetoScan,"Функция сканирования папки с фотографиями")
             # Инициализация класса
             x = class_photos(argument)
+            # Функция разбора фотографий
+            x.scanfolderwithimages()
             # Вызов функции сканирования локальных папок
             x.scanfolderforimages()
             # Вызов функции сканирования удалённых папок
@@ -166,7 +169,9 @@ def switcher(argument):
             # Запускаем поток с функцией подсчёта статистики загруженных фотографий
             t3 = Thread(target=generationstatuploadphotos)
             t3.start()
-            time.sleep(60)
+            times.timetoGenerationStatUploadPhotos = datetime.time(0, 15).strftime("%H:%M")
+            print("Следующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
+
         # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t",argument)

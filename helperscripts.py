@@ -647,3 +647,7 @@ def generationstatuploadphotos():
 
     except Exception as e:
         print(f"Логгирование статистики фотографий сломалось: {e}")
+
+# Функция вывода данных о запущенной функции
+def printer(time, name):
+    print(f"\t{time}\t\t{name}.")

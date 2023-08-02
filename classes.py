@@ -1,11 +1,14 @@
-import time
 import datetime
 import os
-from collections import namedtuple
+import gspread
+import win32security
+import shutil
 
 from tqdm import tqdm
 from ftplib import FTP
 from dates import *
+from PIL import Image
+from threading import Thread
 
 # Класс времён
 class times:
@@ -26,7 +29,7 @@ class times:
     #timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
     timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=7)).strftime("%H:%M")
     # Время для проверки 2.0 на сканирование фотографий
-    timetoScan_2_0 = datetime.time(3, 15).strftime("%H:%M")
+    timetoScan_2_0 = datetime.time(3, 0).strftime("%H:%M")
 
 # Класс работы с фотографиями
 class class_photos(object):
@@ -38,9 +41,228 @@ class class_photos(object):
     massremote = [[], [], [], [], []]
     # Массив дат создания удалённых файлов
     massremotedates = [[], [], [], [], []]
+    # Массив загружаемых фотографий
+    massnewphotos = [0, 0, 0, 0, 0]
 
     def __init__(self, argument):
         self.date = argument
+
+    # Функция записи логов папок фотографий
+    def createnewarrowinlogs(self, lenphotos):
+        try:
+            # Подключаемся к сервисному аккаунту
+            gc = gspread.service_account(CREDENTIALS_FILE)
+            # Подключаемся к таблице по ключу таблицы
+            table = gc.open_by_key(sheetkey)
+            # Открываем нужный лист
+            worksheet = table.worksheet("LogsPhotos")
+            # Получаем данные с листа
+            dates = worksheet.get_values()
+            # Получаем номер самой последней строки
+            newstr = len(worksheet.col_values(1)) + 1
+            # Вычисляем номер строки
+            newnumber = newstr - 1
+            # Определяем время выполения операции
+            today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+            # Добавляем строку в конец фаила логгирования
+            worksheet.update_cell(newstr, 1, newnumber)
+            worksheet.update_cell(newstr, 2, today)
+            worksheet.update_cell(newstr, 3, lenphotos)
+        except:
+            print("Логгирование фотографий сломалось(")
+
+    # Функция сбора статистики по загруженным фотографиям
+    def statisticsphotos(self, pathimage, massnewphotos):
+        sd = win32security.GetFileSecurity(pathimage, win32security.OWNER_SECURITY_INFORMATION)
+        owner_sid = sd.GetSecurityDescriptorOwner()
+        match (str(owner_sid)):
+            case masssotr.PySID_fleysner:
+                massnewphotos[0] += 1
+            case masssotr.PySID_kireev:
+                massnewphotos[1] += 1
+            case masssotr.PySID_pushkar:
+                massnewphotos[2] += 1
+            case masssotr.PySID_ivanov:
+                massnewphotos[3] += 1
+            case _:
+                massnewphotos[4] += 1
+        return massnewphotos
+
+    # Функция получения размера изображения
+    def get_size_format(self, b, factor=1024, suffix="B"):
+        """
+        Scale bytes to its proper byte format
+        e.g:
+            1253656 => '1.20MB'
+            1253656678 => '1.17GB'
+        """
+        for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+            if b < factor:
+                return f"{b:.2f}{unit}{suffix}"
+            b /= factor
+        return f"{b:.2f}Y{suffix}"
+
+    # Функция конвертации изображения (уменьшения веса и подгонка под заданные параметры)
+    def convertimage(self, path):
+        # Размеры изображения на выходе
+        width = 1920
+        height = 1440
+        # Загружаем фотографию в память
+        img = Image.open(path)
+        # Первоначальный размер картинки
+        olddimensions = img.size
+        # Получаем размер изображения до компрессии
+        image_size = os.path.getsize(path)
+        oldsize = self.get_size_format(image_size)
+        # Преобразуем изображение приводя его к нужным высоте и ширине и уменьшая размер
+        img.thumbnail(size=(width, height))
+        if img.height > 1080:
+            difference_height = (height - 1080) / 2
+            img = img.crop((0, 0 + difference_height, 1920, height - difference_height))
+        # Сохраняем изображение
+        img.save(path, optimize=True, quality=95)
+        # Получаем новые размеры картинки
+        newdimesions = img.size
+        # Получаем размер изображение после компрессии
+        image_size = os.path.getsize(path)
+        newsize = self.get_size_format(image_size)
+        # Печатаем в кносоль результат
+        print(f"{path} с шириной, высотой: {olddimensions} и размером: {oldsize} была преобразована в: {newdimesions} и {newsize}")
+
+    # Переименование и перемещение картинки по необходимому локальному пути
+    def renameanduploadimage(self, pathimage, folder):
+        lenmailfolder = 62
+        # Начинаем с переименования картинки
+        numberfolderfirst = str(pathimage)[lenmailfolder:]
+        # Если папка четырёхзначная
+        if numberfolderfirst[4] == "/":
+            numberfoldersecond = str(numberfolderfirst)[:4]
+        elif numberfolderfirst[3] == "/":
+            numberfoldersecond = str(numberfolderfirst)[:3]
+        else:
+            numberfoldersecond = str(numberfolderfirst)[:5]
+        # Название картинки
+        namepic = numberfoldersecond + str(pathimage)[-4:]
+        # Новый путь к картинке
+        convertname = str(pathimage)[:lenmailfolder] + numberfoldersecond + "/" + namepic
+        # Переименование картинки
+        os.rename(pathimage, convertname)
+
+        # Начинаем загрузку фотографии по необходимому местоположению
+        newpathfile = str(pathimage)[:29] + str(folder) + "/" + namepic
+        shutil.move(convertname, newpathfile)
+
+    # Функция записи статистики по загруженным фотографиям в GoogleDocs
+    def updatedatesuploadphotos(self, massnewphotos):
+        try:
+            # Подключаемся к сервисному аккаунту
+            gc = gspread.service_account(CREDENTIALS_FILE)
+            # Подключаемся к таблице по ключу таблицы
+            table = gc.open_by_key(sheetkey)
+            # Открываем нужный лист
+            worksheet = table.worksheet("LogsPhotos")
+            # Получаем данные из ячеек
+            massolddates = [int(worksheet.get_values(masssotr.CellTable_fleysner)[0][0]),
+                            int(worksheet.get_values(masssotr.CellTable_kireev)[0][0]),
+                            int(worksheet.get_values(masssotr.CellTable_pushkar)[0][0]),
+                            int(worksheet.get_values(masssotr.CellTable_ivanov)[0][0]),
+                            int(worksheet.get_values(masssotr.CellTable_none)[0][0])]
+            # Новый массив для результата сложения
+            newmass = []
+            # Прибавляем новые значения к старым
+            for elementfirst, elementsecond in zip(massolddates, massnewphotos):
+                newmass += [elementfirst + elementsecond]
+            # Обновляем значения в таблице
+            worksheet.update(masssotr.CellTable_fleysner, newmass[0])
+            worksheet.update(masssotr.CellTable_kireev, newmass[1])
+            worksheet.update(masssotr.CellTable_pushkar, newmass[2])
+            worksheet.update(masssotr.CellTable_ivanov, newmass[3])
+            worksheet.update(masssotr.CellTable_none, newmass[4])
+
+        except Exception as e:
+            print(f"Логгирование статистики фотографий сломалось: {e}")
+
+    # Функция сканирование папки для разбора фотографий
+    def scanfolderwithimages(self):
+        # Массив загруженных фотографий
+        massnewphotos = [0, 0, 0, 0, 0]
+        # Получаем лист фаилов находящихся по адресу
+        list = os.listdir(mainpathanalysis)
+        # Проверка наличия фотографий
+        # Если папок для разбора нет
+        if list == []:
+            print("\tДанные по импорту фотографий из папки для разбора отсутствуют")
+        # Если есть папки для разбора
+        else:
+            # Выясняем количество папок
+            lenphotos = len(list)
+            # Логгирование фотографий
+            self.createnewarrowinlogs(lenphotos)
+            # Пробегаемся по элеметам
+            for element in list:
+                # Обыгрывание Thumbs.db
+                if element == "Thumbs.db":
+                    # Выясняем путь к этому фаилу
+                    path = mainpathanalysis + "/" + element
+                    # Пытаемся удалить данный фаил
+                    try:
+                        if os.access(path, os.R_OK and os.X_OK):
+                            os.remove(path)
+                    except PermissionError:
+                        # Оператор заглушка равноценная отсутствию операции
+                        pass
+                # Если же это не фаил Thumbs.db
+                else:
+                    # Выясняем путь к этому фаилу
+                    pathfolder = mainpathanalysis + "/" + element
+                    # Получаем данные о фаилах по этому пути
+                    nextlist = os.listdir(pathfolder)
+                    # Если папка пуста, то пишем о пустой папке
+                    if nextlist == []:
+                        print("\t Папка ", element, " пуста")
+                    # Если папка не пуста
+                    else:
+                        numberfolder = 1
+                        for elem in nextlist:
+                            # Обыгрывание Thumbs.db
+                            if elem == "Thumbs.db":
+                                continue
+                            else:
+                                # Условие перебора количества фотографий, так как 6 папки нету
+                                if numberfolder >= 6:
+                                    break
+                                else:
+                                    # Выясняем путь к фаилу
+                                    pathimage = pathfolder + "/" + elem
+                                    # Функция сбора статистики по загруженным фотографиям
+                                    massnewphotos = self.statisticsphotos(pathimage, massnewphotos)
+                                    # Уменьшение веса и подгонка фотографии
+                                    self.convertimage(pathimage)
+                                    # Переименоваие и загрузка фотографии
+                                    self.renameanduploadimage(pathimage, numberfolder)
+                                    # Увеличиваем счётчик
+                                    numberfolder = numberfolder + 1
+            # После окончания загрузки фотографий по папкам удаляем папку
+            for elem in list:
+                # Обыгрывание Thumbs.db
+                if element == "Thumbs.db":
+                    path = mainpathanalysis + "/" + element
+                    try:
+                        if os.access(path, os.R_OK and os.X_OK):
+                            os.remove(path)
+                    except PermissionError:
+                        pass
+                else:
+                    # Выясняем путь к папке
+                    path = mainpathanalysis + "/" + elem
+                    # Удаляем полностью папку
+                    try:
+                        shutil.rmtree(path)
+                    except Exception as e:
+                        print("Удаление невозможно. По причине ", e)
+            t1 = Thread(target=self.updatedatesuploadphotos, args=(massnewphotos,))
+            t1.start()
+            print("Удаление папок завершено")
 
     # Функция сканирования локальных папок с фотографиями
     def scanfolderforimages(self):
