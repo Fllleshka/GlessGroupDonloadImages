@@ -3,6 +3,11 @@ import os
 import gspread
 import win32security
 import shutil
+import pythoncom
+import openpyxl
+import win32com.client
+import requests
+import json
 
 from tqdm import tqdm
 from ftplib import FTP
@@ -46,6 +51,17 @@ class class_photos(object):
 
     def __init__(self, argument):
         self.date = argument
+
+    # Функция последовательного запуска функций
+    def startprocessing(self):
+        # Функция разбора фотографий
+        self.scanfolderwithimages()
+        # Вызов функции сканирования локальных папок
+        self.scanfolderforimages()
+        # Вызов функции сканирования удалённых папок
+        self.scanfilesinremoteserver()
+        # Вызов функции выявления различия файлов на локальном и удалённом сервере
+        self.comparisonlists()
 
     # Функция записи логов папок фотографий
     def createnewarrowinlogs(self, lenphotos):
@@ -223,7 +239,7 @@ class class_photos(object):
                     # Если папка не пуста
                     else:
                         numberfolder = 1
-                        for elem in nextlist:
+                        for elem in tqdm(nextlist):
                             # Обыгрывание Thumbs.db
                             if elem == "Thumbs.db":
                                 continue
@@ -449,3 +465,487 @@ class class_photos(object):
                 file.close()
         print("Синхронизация папки ", numberfolder, " завершена.")
         ftp.quit()
+
+# Класс работы с Call центре
+class class_call_center(object):
+
+    def __init__(self, argument):
+        self.date = argument
+
+    # Функция записи об обновлении файла Call центра
+    def createnewarrowincallcenter2(self):
+        try:
+            # Подключаемся к сервисному аккаунту
+            gc = gspread.service_account(CREDENTIALS_FILE)
+            # Подключаемся к таблице по ключу таблицы
+            table = gc.open_by_key(sheetkey)
+            # Открываем нужный лист
+            worksheet = table.worksheet("LogsCallCenter")
+            # Получаем номер самой последней строки
+            newstr = len(worksheet.col_values(1)) + 1
+            # Вычисляем номер строки
+            newnumber = newstr - 1
+            # Определяем время выполения операции
+            today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+            # Определяем диапазон для обьединения ячеек
+            mergerange = "C" + str(newstr) + ":F" + str(newstr)
+            # Обьединяем ячейки да записи
+            worksheet.merge_cells(mergerange)
+            # Добавляем запись в таблицу логгирования
+            worksheet.update_cell(newstr, 1, newnumber)
+            worksheet.update_cell(newstr, 2, today)
+            worksheet.update_cell(newstr, 3, "Фаил [График 2023 ТЕСТ.xlsx] обновлён")
+            # Окрашивание ячейки
+            color = {"backgroundColor": {"red": 0.94, "green": 0.9, "blue": 0.15}, "horizontalAlignment": "CENTER"}
+            worksheet.format("C" + str(newstr), color)
+            # Делаем центрирование ячейки
+            worksheet.format(mergerange, {"horizontalAlignment": "CENTER"})
+        except Exception as e:
+            print(f"Логгирование call-центра сломалось: {e}")
+
+    # Функция копирования данный в файл для работы
+    def checkupdatedatesexcel(self):
+        # Вычисляем время последнего изменения основного документа
+        file1 = openpyxl.load_workbook(mainfile).properties.modified
+        # Вычисляем дату последнего изменения рабочего документа
+        file2 = openpyxl.load_workbook(pathfile).properties.modified
+        # Вычисляем разницу времён
+        diff_times = file1 - file2
+        # Устанавливаем время для синхронизации фаилов
+        deltatime = datetime.timedelta(days=0, hours=0, minutes=5)
+        # Если deltatime меньше разницы во времени изменения файлов
+        if deltatime < diff_times:
+            print("\t\tСинхронизация требуется")
+            # Выполняем копирование
+            shutil.copy2(mainfile, pathfile, follow_symlinks=True)
+            print("\t\tСтатус операции изменения фаила: [Фаил обновлён]")
+            # Логгирование обновления фаила
+            self.createnewarrowincallcenter2()
+        # Иначе синхронизацию не выполняем.
+        else:
+            print("Синхронизация не требуется")
+
+    # Функция импорта данных из файла для работы
+    def importdatesformexcel(self, path, password):
+        # Экземпляр COM обьекта
+        xlApp = win32com.client.Dispatch("Excel.Application")
+        # Открываем фаил
+        xlwb = xlApp.Workbooks.Open(path, False, True, None, password)
+        # Выбираем лист(таблицу)
+        sheet = xlwb.ActiveSheet
+        # Выбираем данные из range
+        alldates = sheet.Range("B1:B451")
+
+        # Выясняем текущий мясяц
+        today = datetime.datetime.today()
+        todayyear = int(today.strftime("%Y"))
+        listmontheng = [datetime.date(todayyear, 1, 1).strftime("%B"), datetime.date(todayyear, 2, 1).strftime("%B"),
+                        datetime.date(todayyear, 3, 1).strftime("%B"), datetime.date(todayyear, 4, 1).strftime("%B"),
+                        datetime.date(todayyear, 5, 1).strftime("%B"), datetime.date(todayyear, 6, 1).strftime("%B"),
+                        datetime.date(todayyear, 7, 1).strftime("%B"), datetime.date(todayyear, 8, 1).strftime("%B"),
+                        datetime.date(todayyear, 9, 1).strftime("%B"), datetime.date(todayyear, 10, 1).strftime("%B"),
+                        datetime.date(todayyear, 11, 1).strftime("%B"), datetime.date(todayyear, 12, 1).strftime("%B")]
+        listmonthrus = ["ЯНВАРЬ", "ФЕВРАЛЬ", "МАРТ", "АПРЕЛЬ", "МАЙ", "ИЮНЬ", "ИЮЛЬ", "АВГУСТ", "СЕНТЯБРЬ", "ОКТЯБРЬ",
+                        "НОЯБРЬ", "ДЕКАБРЬ"]
+        todaymontheng = today.strftime("%B")
+        todaymonthrus = listmonthrus[listmontheng.index(todaymontheng)]
+
+        # Ищем стартовую ячейку, для определения графика на этот месяц
+        index = 0
+        indexmonth = 0
+        # Перебираем все элементы и находим нужную ячейку с текущим месяцем
+        for element in alldates:
+            index = index + 1
+            if str(element) == todaymonthrus:
+                indexmonth = index
+        # Формируем название ячейки начала импорта
+        firstcell = "B" + str(indexmonth)
+        # Формируем название ячейки конца импорта
+        lastcell = "AG" + str(indexmonth + 31)
+        # Формируем строку для импорта
+        cellsrange = firstcell + ":" + lastcell
+        # Импортируем данные за нужный нам месяц
+        datesforsolution = sheet.Range(cellsrange)
+        # Формируем данные в список
+        listdatesforsolution = []
+        for element in datesforsolution:
+            listdatesforsolution.append(str(element))
+        # Закрываем фаил
+        xlwb.Close()
+        # Закрываем COM обьект
+        xlApp.Quit()
+
+        # Возвращаем данные
+        return listdatesforsolution
+
+    # Функция для выбоки по данным
+    def chosedates(self, dates):
+        # Удаляем первый элемент
+        del dates[0]
+
+        # Считаем дни в месяце
+        index = 0
+        for element in dates:
+            index = index + 1
+            if element == "None" or element == "Торговля":
+                # Определяем количество дней в месяце
+                countdaysinmonth = index - 1
+                break
+
+        # Удаляем ненужные данные
+        for element in dates:
+            if element == massmanagers[0]:
+                delelements = dates.index(element)
+        del dates[0:delelements]
+
+        # Разбиваем массив для конкретизации графика каждого менеджера
+        managerlists = []
+        lenmanagers = len(massmanagers) - 1
+        for i in range(0, lenmanagers):
+            managerlist = []
+            index = 0
+            for element in dates:
+                managerlist.append(element)
+                index += 1
+                if index == 32:
+                    break
+            managerlists.append(managerlist)
+            del dates[0:32]
+
+        # Выясняем график работы ПП
+        deldates = 32 * 8
+        # Удаляем ненужные данные
+        del dates[0:deldates]
+        # Добавляем в массив работников данные
+        managerlist = []
+        index = 0
+        for element in dates:
+            managerlist.append(element)
+            index = index + 1
+            if index == countdaysinmonth + 1:
+                break
+        managerlists.append(managerlist)
+        return managerlists
+
+    # Функция активирования менеджеров
+    def selectmenegers(self, managerlists):
+        # Выясняем текущй день
+        today = datetime.datetime.today()
+        todayday = int(today.strftime("%d"))
+        print("Сегодня:", todayday, today.strftime("%B"), int(today.strftime("%Y")))
+        flag = True
+        massworkmanagers = []
+        try:
+            # Изменяем статусы менеджеров call центра
+            for element in managerlists:
+                if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
+                    numbermanager = numbermanagers[massmanagers.index(element[0])]
+                    print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
+                          numbermanager,
+                          "'")
+                    urlforapi = urlapi + str(numbermanager) + '/agent'
+                    statusrequest = requests.put(urlforapi, params=paramoffline, headers=headers)
+                    if statusrequest == "<Response [403]>":
+                        flag = False
+                        print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+                    else:
+                        statusget = requests.get(urlforapi, headers=headers).text
+                        print("\tСтатус менеджера: ", element[0], " = ", statusget)
+                else:
+                    numbermanager = numbermanagers[massmanagers.index(element[0])]
+                    print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
+                          numbermanager,
+                          "'")
+                    urlforapi = urlapi + str(numbermanager) + '/agent'
+                    statusrequest = requests.put(urlforapi, params=paramsonline, headers=headers)
+                    if statusrequest == "<Response [403]>":
+                        flag = False
+                        print("\tЧто-то пошло не так... Нет ответа по запросу изменения статуса")
+                    else:
+                        # Дополнительное условие для последнего менеджера
+                        massworkmanagers.append(element[todayday])
+                        if len(massworkmanagers) == 4:
+                            # Если 3 других менеджера работают, то 4 должен быть отключён
+                            if (massworkmanagers[0] == '9.0' or massworkmanagers[0] == '10.0') and (
+                                    massworkmanagers[1] == '9.0' or massworkmanagers[1] == '10.0') and (
+                                    massworkmanagers[2] == '9.0' or massworkmanagers[2] == '10.0'):
+                                requests.put(urlforapi, params=paramoffline, headers=headers)
+                        statusget = requests.get(urlforapi, headers=headers).text
+                        print("\tСтатус менеджера: ", element[0], " = ", statusget)
+
+            if flag == True:
+                return "\tCall центр успешно настроен."
+            else:
+                return "\tВ работе функции произошла ошибка"
+        except Exception as e:
+            print(f"В работе call-центра произошла ошибка: {e}")
+
+    # Функция записи логов Call Center
+    def createnewarrowincallcenter(self):
+        try:
+            # Подключаемся к сервисному аккаунту
+            gc = gspread.service_account(CREDENTIALS_FILE)
+            # Подключаемся к таблице по ключу таблицы
+            table = gc.open_by_key(sheetkey)
+            # Открываем нужный лист
+            worksheet = table.worksheet("LogsCallCenter")
+            # Получаем номер самой последней строки
+            newstr = len(worksheet.col_values(1)) + 1
+            # Вычисляем номер строки
+            newnumber = newstr - 1
+            # Определяем время выполения операции
+            today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+            # Выясняем данные кто работает
+            managerslist = []
+            # Выясняем статусы менеджеров
+            for element in numbermanagers:
+                urlforapi = urlapi + element + '/agent'
+                status = requests.get(urlforapi, headers=headers).text
+                managerslist.append(status)
+            # Проверяем изменится ли call центр
+            dates = worksheet.row_values(newnumber)
+            # Если данные уже сегодня записывались, то не дублируем их
+            if dates[2] == managerslist[0] and dates[3] == managerslist[1] and dates[4] == managerslist[2] and dates[
+                5] == managerslist[3] and str(dates[1])[:10] == str(today)[:10]:
+                print("\t\tДанные уже были записаны")
+            # Если же эти данные не были записаны, записываем
+            else:
+                greencolor = {"backgroundColor": {"red": 0.63, "green": 1.0, "blue": 0.65},
+                              "horizontalAlignment": "CENTER"}
+                redcolor = {"backgroundColor": {"red": 1.0, "green": 0.65, "blue": 0.63},
+                            "horizontalAlignment": "CENTER"}
+                # Добавляем строку в конец фаила логгирования
+                worksheet.update_cell(newstr, 1, newnumber)
+                worksheet.update_cell(newstr, 2, today)
+                worksheet.update_cell(newstr, 3, managerslist[0])
+                if managerslist[0] == '"ONLINE"':
+                    worksheet.format("C" + str(newstr), greencolor)
+                else:
+                    worksheet.format("C" + str(newstr), redcolor)
+                worksheet.update_cell(newstr, 4, managerslist[1])
+                if managerslist[1] == '"ONLINE"':
+                    worksheet.format("D" + str(newstr), greencolor)
+                else:
+                    worksheet.format("D" + str(newstr), redcolor)
+                worksheet.update_cell(newstr, 5, managerslist[2])
+                if managerslist[2] == '"ONLINE"':
+                    worksheet.format("E" + str(newstr), greencolor)
+                else:
+                    worksheet.format("E" + str(newstr), redcolor)
+                worksheet.update_cell(newstr, 6, managerslist[3])
+                if managerslist[3] == '"ONLINE"':
+                    worksheet.format("F" + str(newstr), greencolor)
+                else:
+                    worksheet.format("F" + str(newstr), redcolor)
+                # Чтобы программа не крашилась из-за лимита количества запросов ставим sleep
+                datetime.time.sleep(60)
+        except Exception as e:
+            print(f"Логгирование call-центра сломалось: {e}")
+
+    # Функция изменения Call центра
+    def changecallcenter(self):
+        # Инициализация многопоточности
+        pythoncom.CoInitialize()
+        # Функция проверки файла на актуальность
+        self.checkupdatedatesexcel()
+        # Достаём данные из файла
+        datesnowmonth = self.importdatesformexcel(pathfile, password)
+        # Выбираем данные для работы с ними
+        massive = self.chosedates(datesnowmonth)
+        # Активируем телефоны менеджеров
+        result = self.selectmenegers(massive)
+        # Записываем изменения в таблицу логгирования
+        self.createnewarrowincallcenter()
+        print(result)
+
+# Класс работы со сбором статистики по звонкам
+class class_collecion_of_information(object):
+
+    def __init__(self, argument):
+        self.date = argument
+
+    # Функция разбора данных по звонкам
+    def addinfoinmass(self, massmissescals, massinboundcalls, masssumtimes, numbermanager, elemclass):
+        # Если вызов входящий пропущенный
+        if elemclass.direction == "INBOUND" and elemclass.status == "MISSED":
+            massmissescals[numbermanager] += 1
+        # Если вызов входящий принятый
+        elif elemclass.direction == "INBOUND" and elemclass.status == "RECIEVED":
+            massinboundcalls[numbermanager] += 1
+            masssumtimes[numbermanager] += elemclass.call_duration
+        return [massmissescals, massinboundcalls, masssumtimes]
+
+    # Функция удобно представления времени разговора из миллисекунд в нормальное представление
+    def converttoseconds(self, totseconds):
+        hours, remainder = divmod(int(totseconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+        return result
+
+    # Функциия импорта и систематизация статистики по звонкам
+    def collectionofinformation(self):
+        # Класс звонка
+        class phoneCall:
+            def __init__(self, name_manager, incoming_call_time, incoming_call_number, call_duration, direction,
+                         status):
+                # ФИО менеджера
+                self.name_manager = name_manager
+                # Время входящего звонка
+                self.incoming_call_time = incoming_call_time
+                # Телефон звонка
+                self.incoming_call_number = incoming_call_number
+                # Продолжительность звонка
+                self.call_duration = call_duration
+                # Тип вызова (INBOUND-Входящий вызов, OUTBOUND-Исходящий вызов))
+                self.direction = direction
+                # Статус звонка (RECIEVED-принятый, MISSED-пропущенный, PLACED-исходящий)
+                self.status = status
+
+            # Функция печати данных
+            def printdates(self):
+                print(f"\t{self.name_manager}"
+                      f"\t{self.incoming_call_time}"
+                      f"\t\t{self.incoming_call_number}"
+                      f"\t{self.call_duration}"
+                      f"\t\t{self.direction}"
+                      f"\t\t{self.status}")
+
+        try:
+            # Дата начала отчёта (вчерашний день начало для)
+            dateAndTimeStart = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
+            dateAndTimeStart += "T00:00:00.000Z"
+            # Дата окончания отчёта (сегодняшний день начало дня)
+            dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
+            dateAndTimeEnd += "T00:00:00.000Z"
+            calls = []
+
+            # Пробегаемся по списку менеджеров
+            for element in numbermanagers:
+                # Формируем данные для запроса
+                paramsinfo['userId'] = element
+                paramsinfo['dateTo'] = dateAndTimeEnd
+                paramsinfo['dateFrom'] = dateAndTimeStart
+                statusrequest = requests.get(urlforstatistics, params=paramsinfo, headers=headers)
+                jsonData = json.loads(statusrequest.text)
+                for elem in jsonData:
+                    # print(elem)
+                    # print(elem['direction'])
+                    # Вычисляем время звонка
+                    dateandtime = datetime.datetime.fromtimestamp(elem['startDate'] / 1000)
+                    # Вычисляем продолжительность разговора
+                    dateandtime2 = datetime.timedelta(milliseconds=elem['duration'])
+                    # Если вызов входящий
+                    if elem['direction'] == 'INBOUND':
+                        # Вычисляем телефон абонента
+                        phone = elem['phone_from']
+                        # Добавляем в массив звонков экземпляр класса phoneCall
+                        calls.append(phoneCall(name_manager=elem['abonent']['firstName'],
+                                               incoming_call_time=dateandtime,
+                                               incoming_call_number=phone,
+                                               call_duration=dateandtime2,
+                                               direction=elem['direction'],
+                                               status=elem['status']))
+                    # Иначе вызов исходящий:
+                    else:
+                        # Вычисляем телефон абонента
+                        phone = elem['phone_to']
+                        # Добавляем в массив звонков экземпляр класса phoneCall
+                        calls.append(phoneCall(name_manager=elem['abonent']['firstName'],
+                                               incoming_call_time=dateandtime,
+                                               incoming_call_number=phone,
+                                               call_duration=dateandtime2,
+                                               direction=elem['direction'],
+                                               status=elem['status']))
+            dates = []
+            # Подключаемся к сервисному аккаунту
+            gc = gspread.service_account(CREDENTIALS_FILE)
+            # Подключаемся к таблице по ключу таблицы
+            table = gc.open_by_key(sheetkey)
+            # Открываем нужный лист
+            worksheet = table.worksheet("StatisticOfCalls")
+            # Получаем номер самой последней строки
+            newstr = len(worksheet.col_values(4)) + 1
+            # Вычисляем номер строки
+            newnumber = newstr - 2
+            dates.append(newnumber)
+            # Определяем время выполения операции
+            today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+            dates.append(today)
+            # Выводим дату за которую приводим статистику
+            statdate = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%d.%m.%Y")
+            dates.append(statdate)
+            # Обявлем массивы для подсчёта
+            massmissescals = [0, 0, 0, 0]
+            massinboundcalls = [0, 0, 0, 0]
+            masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0),
+                            datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
+            # Пробегаемся по всем звонкам и сортируем звонки
+            for element in calls:
+                # Считаем статистику для первого менеджера
+                if element.name_manager == fullmassmanagers[0]:
+                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 0, element)
+                # Считаем статистику для второго менеджера
+                elif element.name_manager == fullmassmanagers[1]:
+                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 1, element)
+                # Считаем статистику для третьего менеджера
+                elif element.name_manager == fullmassmanagers[2]:
+                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 2, element)
+                # Считаем статистику для четвёртого менеджера
+                elif element.name_manager == fullmassmanagers[3]:
+                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 3, element)
+                else:
+                    print("Cтатистика для Неизвестного лица(")
+            # Добавляем данные с разбора в результурующий массив
+            for element in range(4):
+                dates.append(massmissescals[element])
+                dates.append(massinboundcalls[element])
+                dates.append(self.converttoseconds(masssumtimes[element].total_seconds()))
+
+            # Проверяем были ли записаны данные ранее
+            datesfromtabel = worksheet.row_values(newnumber + 1)
+            if datesfromtabel[2] == dates[2]:
+                print("\t\tДанные уже были записаны")
+            else:
+                # Записываем получившееся результаты в таблицу
+                i = 0
+                for element in dates:
+                    worksheet.update_cell(newstr, i + 1, dates[i])
+                    i += 1
+
+                # Выясняем кто работал в это день
+                workedmanagers = [0, 0, 0]
+                masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+                for element in numbermanagers:
+                    urlforapi = urlapi + element + '/agent'
+                    status = requests.get(urlforapi, headers=headers).text
+                    for elem in range(0, 3):
+                        workedmanagers.append(status)
+
+                colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74},
+                             "horizontalAlignment": "CENTER",
+                             "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"},
+                                         "left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
+                coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77},
+                               "horizontalAlignment": "CENTER",
+                               "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"},
+                                           "left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
+                colornone = {
+                    "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"}, "left": {"style": "SOLID"},
+                                "right": {"style": "SOLID"}}}
+
+                # Записываем получившееся результаты в таблицу
+                i = 0
+                for element in dates:
+                    match workedmanagers[i]:
+                        case '"ONLINE"':
+                            worksheet.update_cell(newstr, i + 1, dates[i])
+                            worksheet.format(masscolumns[i] + str(newstr), colorwork)
+                        case '"OFFLINE"':
+                            worksheet.update_cell(newstr, i + 1, dates[i])
+                            worksheet.format(masscolumns[i] + str(newstr), coloroutput)
+                        case _:
+                            worksheet.update_cell(newstr, i + 1, dates[i])
+                            worksheet.format(masscolumns[i] + str(newstr), colornone)
+                    i += 1
+        except Exception as e:
+            print(f"Логгирование статистики по звонкам сломалось: {e}")
