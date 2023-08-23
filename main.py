@@ -1,27 +1,8 @@
-import datetime
 import time
-from ftplib import FTP
+from threading import Thread
+
 from helperscripts import *
 from classes import *
-from threading import Thread
-import pythoncom
-import win32security
-
-masslocal = [[], [], [], [], []]
-massremote = [[], [], [], [], []]
-
-# Функция отключения всех в Call центре
-def offcallcenter():
-    print("Я функция полного отключения call-центра")
-    # Выясняем текущий день
-    today = datetime.datetime.today()
-    todayday = int(today.strftime("%w"))
-    if todayday == 3:
-        for element in numbermanagers:
-            urlforapi = urlapi + str(element) + '/agent'
-            requests.put(urlforapi, params = paramoffline, headers=headers)
-    else:
-        return
 
 # Функция выбора действия от времени
 def switcher(argument):
@@ -77,15 +58,19 @@ def switcher(argument):
             print("Следующее время для работы изменения Call-центра\t", times.timetoChangeCallCenter)
 
         case times.timetoGenerationStatUploadPhotos:
+
+            # Инициализация класса
+            x = class_generation_stat_uploadphotos(argument)
             # Запускаем поток с функцией подсчёта статистики загруженных фотографий
-            t3 = Thread(target=generationstatuploadphotos)
+            t3 = Thread(target=x.generationstatuploadphotos())
             t3.start()
-            times.timetoGenerationStatUploadPhotos = datetime.time(0, 15).strftime("%H:%M")
+
+            times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
             print("Следующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
 
         # Время которое не выбрано для события
         case default:
-            return print("Время сейчас:\t",argument)
+            return print("Время сейчас:\t", default)
 
 # Вечный цикл с таймером 30 секунд
 while True:
