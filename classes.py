@@ -761,33 +761,30 @@ class class_call_center(object):
 # Класс работы со сбором статистики по звонкам
 class class_collecion_of_information(object):
 
+    # Массив звонков
+    calls = []
+    # Массив данных
+    dates = []
+    # Массив для подсчёта пропущенных звонков
+    massmissescals = [0, 0, 0, 0]
+    # Массив для подсчёта принятых звонков
+    massinboundcalls = [0, 0, 0, 0]
+    # Массив для подсчёта общего времени общения с клиентами
+    masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
+    # Массив менеджеров которые сегодня работали
+    workedmanagers = [0, 0, 0]
+    # Массив названий столбцов
+    masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+
     def __init__(self, argument):
         self.date = argument
 
-    # Функция разбора данных по звонкам
-    def addinfoinmass(self, massmissescals, massinboundcalls, masssumtimes, numbermanager, elemclass):
-        # Если вызов входящий пропущенный
-        if elemclass.direction == "INBOUND" and elemclass.status == "MISSED":
-            massmissescals[numbermanager] += 1
-        # Если вызов входящий принятый
-        elif elemclass.direction == "INBOUND" and elemclass.status == "RECIEVED":
-            massinboundcalls[numbermanager] += 1
-            masssumtimes[numbermanager] += elemclass.call_duration
-        return [massmissescals, massinboundcalls, masssumtimes]
-
-    # Функция удобно представления времени разговора из миллисекунд в нормальное представление
-    def converttoseconds(self, totseconds):
-        hours, remainder = divmod(int(totseconds), 3600)
-        minutes, seconds = divmod(remainder, 60)
-        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
-        return result
-
     # Функциия импорта и систематизация статистики по звонкам
     def collectionofinformation(self):
+
         # Класс звонка
         class phoneCall:
-            def __init__(self, name_manager, incoming_call_time, incoming_call_number, call_duration, direction,
-                         status):
+            def __init__(self, name_manager, incoming_call_time, incoming_call_number, call_duration, direction, status):
                 # ФИО менеджера
                 self.name_manager = name_manager
                 # Время входящего звонка
@@ -817,7 +814,6 @@ class class_collecion_of_information(object):
             # Дата окончания отчёта (сегодняшний день начало дня)
             dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
             dateAndTimeEnd += "T00:00:00.000Z"
-            calls = []
 
             # Пробегаемся по списку менеджеров
             for element in numbermanagers:
@@ -825,11 +821,12 @@ class class_collecion_of_information(object):
                 paramsinfo['userId'] = element
                 paramsinfo['dateTo'] = dateAndTimeEnd
                 paramsinfo['dateFrom'] = dateAndTimeStart
+                # Делаем запрос к API
                 statusrequest = requests.get(urlforstatistics, params=paramsinfo, headers=headers)
+                # Формираем Json
                 jsonData = json.loads(statusrequest.text)
+                # Разбираем данные
                 for elem in jsonData:
-                    # print(elem)
-                    # print(elem['direction'])
                     # Вычисляем время звонка
                     dateandtime = datetime.datetime.fromtimestamp(elem['startDate'] / 1000)
                     # Вычисляем продолжительность разговора
@@ -838,114 +835,140 @@ class class_collecion_of_information(object):
                     if elem['direction'] == 'INBOUND':
                         # Вычисляем телефон абонента
                         phone = elem['phone_from']
-                        # Добавляем в массив звонков экземпляр класса phoneCall
-                        calls.append(phoneCall(name_manager=elem['abonent']['firstName'],
-                                               incoming_call_time=dateandtime,
-                                               incoming_call_number=phone,
-                                               call_duration=dateandtime2,
-                                               direction=elem['direction'],
-                                               status=elem['status']))
                     # Иначе вызов исходящий:
                     else:
                         # Вычисляем телефон абонента
                         phone = elem['phone_to']
-                        # Добавляем в массив звонков экземпляр класса phoneCall
-                        calls.append(phoneCall(name_manager=elem['abonent']['firstName'],
-                                               incoming_call_time=dateandtime,
-                                               incoming_call_number=phone,
-                                               call_duration=dateandtime2,
-                                               direction=elem['direction'],
-                                               status=elem['status']))
-            dates = []
-            # Подключаемся к сервисному аккаунту
-            gc = gspread.service_account(CREDENTIALS_FILE)
-            # Подключаемся к таблице по ключу таблицы
-            table = gc.open_by_key(sheetkey)
-            # Открываем нужный лист
-            worksheet = table.worksheet("StatisticOfCalls")
-            # Получаем номер самой последней строки
-            newstr = len(worksheet.col_values(4)) + 1
-            # Вычисляем номер строки
-            newnumber = newstr - 2
-            dates.append(newnumber)
-            # Определяем время выполения операции
-            today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
-            dates.append(today)
-            # Выводим дату за которую приводим статистику
-            statdate = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%d.%m.%Y")
-            dates.append(statdate)
-            # Обявлем массивы для подсчёта
-            massmissescals = [0, 0, 0, 0]
-            massinboundcalls = [0, 0, 0, 0]
-            masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0),
-                            datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
-            # Пробегаемся по всем звонкам и сортируем звонки
-            for element in calls:
-                # Считаем статистику для первого менеджера
-                if element.name_manager == fullmassmanagers[0]:
-                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 0, element)
-                # Считаем статистику для второго менеджера
-                elif element.name_manager == fullmassmanagers[1]:
-                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 1, element)
-                # Считаем статистику для третьего менеджера
-                elif element.name_manager == fullmassmanagers[2]:
-                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 2, element)
-                # Считаем статистику для четвёртого менеджера
-                elif element.name_manager == fullmassmanagers[3]:
-                    self.addinfoinmass(massmissescals, massinboundcalls, masssumtimes, 3, element)
-                else:
-                    print("Cтатистика для Неизвестного лица(")
-            # Добавляем данные с разбора в результурующий массив
-            for element in range(4):
-                dates.append(massmissescals[element])
-                dates.append(massinboundcalls[element])
-                dates.append(self.converttoseconds(masssumtimes[element].total_seconds()))
+                    # Добавляем в массив звонков экземпляр класса phoneCall
+                    self.addElemInMassCalls(phoneCall, elem, dateandtime, phone, dateandtime2)
+                # Заполняем массив статусов
+                urlforapi = urlapi + element + '/agent'
+                status = requests.get(urlforapi, headers=headers).text
+                for elem in range(0, 3):
+                    self.workedmanagers.append(status)
 
+            # Функция добавления данных
+            self.addDates()
+            # Функция сортировки данных по звонкам
+            self.sortCalls()
+            # Данные по таблице
+            worksheet = self.datesGoogleTable()
             # Проверяем были ли записаны данные ранее
-            datesfromtabel = worksheet.row_values(newnumber + 1)
-            if datesfromtabel[2] == dates[2]:
+            datesfromtabel = worksheet.row_values(len(worksheet.col_values(4)))
+
+            if datesfromtabel[2] == self.dates[2]:
                 print("\t\tДанные уже были записаны")
             else:
                 # Записываем получившееся результаты в таблицу
-                i = 0
-                for element in dates:
-                    worksheet.update_cell(newstr, i + 1, dates[i])
-                    i += 1
+                # Получаем номер самой последней строки
+                newstr = len(worksheet.col_values(1)) + 1
+                for element in self.dates:
+                    # Вычисляем индекс элемента
+                    index = self.dates.index(element) + 1
+                    worksheet.update_cell(newstr, index, self.dates[index-1])
 
-                # Выясняем кто работал в это день
-                workedmanagers = [0, 0, 0]
-                masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
-                for element in numbermanagers:
-                    urlforapi = urlapi + element + '/agent'
-                    status = requests.get(urlforapi, headers=headers).text
-                    for elem in range(0, 3):
-                        workedmanagers.append(status)
 
-                colorwork = {"backgroundColor": {"red": 0.67, "green": 1.0, "blue": 0.74},
-                             "horizontalAlignment": "CENTER",
-                             "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"},
-                                         "left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
-                coloroutput = {"backgroundColor": {"red": 1.0, "green": 0.78, "blue": 0.77},
-                               "horizontalAlignment": "CENTER",
-                               "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"},
-                                           "left": {"style": "SOLID"}, "right": {"style": "SOLID"}}}
-                colornone = {
-                    "borders": {"top": {"style": "SOLID"}, "bottom": {"style": "SOLID"}, "left": {"style": "SOLID"},
-                                "right": {"style": "SOLID"}}}
+            self.InsertDatesInTable()
 
-                # Записываем получившееся результаты в таблицу
-                i = 0
-                for element in dates:
-                    match workedmanagers[i]:
-                        case '"ONLINE"':
-                            worksheet.update_cell(newstr, i + 1, dates[i])
-                            worksheet.format(masscolumns[i] + str(newstr), colorwork)
-                        case '"OFFLINE"':
-                            worksheet.update_cell(newstr, i + 1, dates[i])
-                            worksheet.format(masscolumns[i] + str(newstr), coloroutput)
-                        case _:
-                            worksheet.update_cell(newstr, i + 1, dates[i])
-                            worksheet.format(masscolumns[i] + str(newstr), colornone)
-                    i += 1
         except Exception as e:
             print(f"Логгирование статистики по звонкам сломалось: {e}")
+
+    # Функция разбора данных по звонкам
+    def addinfoinmass(self, massmissescals, massinboundcalls, masssumtimes, numbermanager, elemclass):
+        # Если вызов входящий пропущенный
+        if elemclass.direction == "INBOUND" and elemclass.status == "MISSED":
+            massmissescals[numbermanager] += 1
+        # Если вызов входящий принятый
+        elif elemclass.direction == "INBOUND" and elemclass.status == "RECIEVED":
+            massinboundcalls[numbermanager] += 1
+            masssumtimes[numbermanager] += elemclass.call_duration
+        return [massmissescals, massinboundcalls, masssumtimes]
+
+    # Функция удобно представления времени разговора из миллисекунд в нормальное представление
+    def converttoseconds(self, totseconds):
+        hours, remainder = divmod(int(totseconds), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        result = str(hours) + ":" + str(minutes) + ":" + str(seconds)
+        return result
+
+    # Функция добавления в массив звонков
+    def addElemInMassCalls(self, phoneCall, jsonelem, dateandtime, phone, dateandtime2):
+        self.calls.append(phoneCall(name_manager = jsonelem['abonent']['firstName'],
+                                    incoming_call_time=dateandtime,
+                                    incoming_call_number=phone,
+                                    call_duration=dateandtime2,
+                                    direction=jsonelem['direction'],
+                                    status=jsonelem['status']))
+
+    # Данные по таблице Google Sheets
+    def datesGoogleTable(self):
+        # Подключаемся к сервисному аккаунту
+        gc = gspread.service_account(CREDENTIALS_FILE)
+        # Подключаемся к таблице по ключу таблицы
+        table = gc.open_by_key(sheetkey)
+        # Открываем нужный лист
+        worksheet = table.worksheet("StatisticOfCalls")
+        return worksheet
+
+    # Функция добавление данных в массив данных
+    def addDates(self):
+        # Данные по таблице
+        worksheet = self.datesGoogleTable()
+        # Получаем номер самой последней строки
+        newstr = len(worksheet.col_values(4)) + 1
+        # Вычисляем номер строки
+        newnumber = newstr - 2
+        # Добавляем номер строки
+        self.dates.append(newnumber)
+        # Определяем время выполения операции
+        today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
+        # Добавляем дату выполения операции
+        self.dates.append(today)
+        # Вычисляем дату за которую приводим статистику
+        statdate = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%d.%m.%Y")
+        # Добавляем дату за которую приводим статистику
+        self.dates.append(statdate)
+
+    # Функция сортировки данных по звонкам
+    def sortCalls(self):
+        # Пробегаемся по всем звонкам и сортируем звонки
+        for element in self.calls:
+            # Считаем статистику для первого менеджера
+            if element.name_manager == fullmassmanagers[0]:
+                self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 0, element)
+            # Считаем статистику для второго менеджера
+            elif element.name_manager == fullmassmanagers[1]:
+                self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 1, element)
+            # Считаем статистику для третьего менеджера
+            elif element.name_manager == fullmassmanagers[2]:
+                self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 2, element)
+            # Считаем статистику для четвёртого менеджера
+            elif element.name_manager == fullmassmanagers[3]:
+                self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 3, element)
+            else:
+                print("Cтатистика для Неизвестного лица(")
+        # Добавляем данные с разбора в результурующий массив
+        for element in range(4):
+            self.dates.append(self.massmissescals[element])
+            self.dates.append(self.massinboundcalls[element])
+            self.dates.append(self.converttoseconds(self.masssumtimes[element].total_seconds()))
+
+    # Функция вставки данных в таблицу
+    def InsertDatesInTable(self):
+        # Данные по таблице
+        worksheet = self.datesGoogleTable()
+        # Получаем номер самой последней строки
+        newstr = len(worksheet.col_values(4)) + 1
+        i = 0
+        for element in self.dates:
+            match self.workedmanagers[i]:
+                case '"ONLINE"':
+                    worksheet.update_cell(newstr, i + 1, self.dates[i])
+                    worksheet.format(self.masscolumns[i] + str(newstr), colorsforworkers.colorwork)
+                case '"OFFLINE"':
+                    worksheet.update_cell(newstr, i + 1, self.dates[i])
+                    worksheet.format(self.masscolumns[i] + str(newstr), colorsforworkers.coloroutput)
+                case _:
+                    worksheet.update_cell(newstr, i + 1, self.dates[i])
+                    worksheet.format(self.masscolumns[i] + str(newstr), colorsforworkers.colornone)
+            i += 1

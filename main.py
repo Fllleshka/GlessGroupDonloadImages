@@ -32,6 +32,7 @@ def switcher(argument):
 
             # Инициализация класса
             x = class_photos(argument)
+            # Запускаем поток с функцией разбора и синхронизации фотографий
             t0 = Thread(target = x.startprocessing())
             t0.start()
 
@@ -49,8 +50,10 @@ def switcher(argument):
         case times.timetoCollectionOfInformation:
             printer(times.timetoCollectionOfInformation, "Время импорта статистики по звонкам")
 
+            # Инициализация класса
+            x = class_collecion_of_information(argument)
             # Запускаем поток с функцией сбора статистики call-центра
-            t1 = Thread(target=collectionofinformation)
+            t1 = Thread(target=x.collectionofinformation)
             t1.start()
 
             times.timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
@@ -59,10 +62,10 @@ def switcher(argument):
         # Время для изменения call-центра
         case times.timetoChangeCallCenter:
             printer(times.timetoChangeCallCenter, "Функция изменения call центра")
-            # Запускаем поток с функцией изменения call-центра
+
             # Инициализация класса
             x = class_call_center(argument)
-            # Запускам поток который вызывает стартовую функцию
+            # Запускаем поток с функцией изменения call-центра
             t2 = Thread(target = x.changecallcenter())
             t2.start()
 
