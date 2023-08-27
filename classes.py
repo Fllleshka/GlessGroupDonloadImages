@@ -860,15 +860,7 @@ class class_collecion_of_information(object):
                 print("\t\tДанные уже были записаны")
             else:
                 # Записываем получившееся результаты в таблицу
-                # Получаем номер самой последней строки
-                newstr = len(worksheet.col_values(1)) + 1
-                for element in self.dates:
-                    # Вычисляем индекс элемента
-                    index = self.dates.index(element) + 1
-                    worksheet.update_cell(newstr, index, self.dates[index-1])
-
-
-            self.InsertDatesInTable()
+                self.InsertDatesInTable()
 
         except Exception as e:
             print(f"Логгирование статистики по звонкам сломалось: {e}")
@@ -981,14 +973,18 @@ class class_generation_stat_uploadphotos(object):
     # Массив столбцов для импорта статистики
     masscolumns = ["L", "M", "N", "O", "P", "Q", "R"]
 
+    def __init__(self, argument):
+        self.time = argument
+
     # Функция сохранения статистики по загруженным фотографиям
     def generationstatuploadphotos(self):
         try:
             # Проверяем дату сегодняшнюю
             today = datetime.datetime.today()
             todaytime = today.strftime("%d")
+            print(f"Дата сейчас: {todaytime}")
             # Проверяем если начало месяца (01 число)
-            if todaytime != "01":
+            if todaytime == "01":
 
                 # Вычисляем месяц за который сохраняем статистику
                 statmonth = today.replace(day=15).strftime("%B")
@@ -1003,18 +999,13 @@ class class_generation_stat_uploadphotos(object):
                 worksheet = table.worksheet("LogsPhotos")
                 # Получаем номер строки для записи в стоблце L
                 newstr = len(worksheet.col_values(12)) + 1
-
                 # Получаем данные из столбца H
                 massvalues = worksheet.get_values('H2:H6')
-
                 sumphotos = 0
                 # Преобразовываем массив
                 for element in massvalues:
                     self.massvalues.append(int(element[0]))
                     sumphotos += int(element[0])
-
-
-
                 # Запись данных в табличку
                 for element in range(0, 7):
                     column = element + 12
@@ -1035,6 +1026,7 @@ class class_generation_stat_uploadphotos(object):
                 # Записываем дату с коротой считаются фотографии
                 nulldate = today.strftime("%d %B %Y")
                 worksheet.update_cell(2, 9, nulldate)
-
+            else:
+                print(f"Время для обнуления ещё не пришло.")
         except Exception as e:
             print(f"Логгирование статистики фотографий сломалось: {e}")

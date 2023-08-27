@@ -57,7 +57,9 @@ def switcher(argument):
             times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
             print("Следующее время для работы изменения Call-центра\t", times.timetoChangeCallCenter)
 
+        # Время для сбора статистики по загруженным фотографиям
         case times.timetoGenerationStatUploadPhotos:
+            printer(times.timetoChangeCallCenter, "Функция сбора статистики по загруженным фотографиям")
 
             # Инициализация класса
             x = class_generation_stat_uploadphotos(argument)
