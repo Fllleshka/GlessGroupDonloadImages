@@ -1,5 +1,7 @@
 import datetime
 import os
+import time
+
 import gspread
 import win32security
 import shutil
@@ -34,18 +36,21 @@ class times:
     #timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
     timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=7)).strftime("%H:%M")
     # Время для проверки 2.0 на сканирование фотографий
-    timetoScan_2_0 = datetime.time(3, 0).strftime("%H:%M")
+    timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
+    #timetoScan_2_0 = today.time().strftime("%H:%M")
+
+
 
 # Класс работы с фотографиями
 class class_photos(object):
     # Массив локальных файлов
     masslocal = [[], [], [], [], []]
-    # Массив дат создания локальных файлов
-    masslocaldates = [[], [], [], [], []]
+    # Массив размеров локальных файлов
+    masslocalsize = [[], [], [], [], []]
     # Массив удалённых файлов
     massremote = [[], [], [], [], []]
     # Массив дат создания удалённых файлов
-    massremotedates = [[], [], [], [], []]
+    massremotesizes = [[], [], [], [], []]
     # Массив загружаемых фотографий
     massnewphotos = [0, 0, 0, 0, 0]
 
@@ -316,11 +321,10 @@ class class_photos(object):
                 for elem in element:
                     # Формируем путь к элементу
                     pathphoto = mainpath + str(numberfolder) + "/" + str(elem)
-                    # Вычисляем дату создания фотографии
-                    datephoto = os.stat(pathphoto).st_ctime
+                    # Вычисляем размер изображения
+                    datesize = os.stat(pathphoto).st_size
                     # Добавляем данные по результатам в массив
-                    dateandtime = datetime.datetime.fromtimestamp(datephoto).strftime('%Y %m %d %H:%M:%S')
-                    self.masslocaldates[numberfolder-1].append(dateandtime)
+                    self.masslocalsize[numberfolder - 1].append(datesize)
 
     # Функция сканирования удалённых папкок с фотографиями
     def scanfilesinremoteserver(self):
@@ -367,10 +371,6 @@ class class_photos(object):
                         # Формируем путь к элементу
                         remotepathphoto = "/" + str(numberfolder) + "/" + str(elem)
                         self.importremotedatesfromftp(datesftp, remotepathphoto, numberfolder)
-                        # Вычисляем дату создания фотографии
-                        #datephoto = os.stat(pathphoto).st_ctime
-                        # Добавляем данные по результатам в массив
-                        #self.masslocaldates[numberfolder - 1].append(time.ctime(datephoto))
                     # Закрываем соединение с удалённым сервером
                     datesftp.close()
         except Exception as e:
@@ -396,51 +396,76 @@ class class_photos(object):
 
     # Функция импорта данных дат файлов на удалённом сервере
     def importremotedatesfromftp(self, datesftp, remotepathphoto, numberfolder):
-        cmdrequest = "MDTM " + remotepathphoto
-        liastmodifited = datesftp.voidcmd(cmdrequest)[4:].strip()
-        year = liastmodifited[:4]
-        month = liastmodifited[4:6]
-        day = liastmodifited[6:8]
-        hour = liastmodifited[8:10]
-        minutes = liastmodifited[10:12]
-        seconds = liastmodifited[12:14]
-        dateandtime = year + " " + month + " " + day + " " + hour + ":" + minutes + ":" + seconds
-        self.massremotedates[numberfolder-1].append(dateandtime)
-        return dateandtime
+        sizephoto = datesftp.size(remotepathphoto)
+        self.massremotesizes[numberfolder - 1].append(sizephoto)
 
     # Функция различия локальной у удалённой папки
     def comparisonlists(self):
-        for element in range(0, 5):
-            result = list(set(self.masslocal[element]) - set(self.massremote[element]))
-            if result == []:
-                match element:
-                    case 0:
-                        print("Первые\t\tпапки синхронизированны!")
-                    case 1:
-                        print("Вторые\t\tпапки синхронизированны!")
-                    case 2:
-                        print("Третьи\t\tпапки синхронизированны!")
-                    case 3:
-                        print("Четвёртые\tпапки синхронизированны!")
-                    case 4:
-                        print("Пятые\t\tпапки синхронизированны!")
-            else:
-                match element:
-                    case 0:
-                        print("Разность первых папкок: ", result)
-                        self.uploadfiles(element + 1, result)
-                    case 1:
-                        print("Разность вторых папкок: ", result)
-                        self.uploadfiles(element + 1, result)
-                    case 2:
-                        print("Разность третьих папкок: ", result)
-                        self.uploadfiles(element + 1, result)
-                    case 3:
-                        print("Разность четвёртых папкок: ", result)
-                        self.uploadfiles(element + 1, result)
-                    case 4:
-                        print("Разность пятых папкок: ", result)
-                        self.uploadfiles(element + 1, result)
+        # Если время для продвинутого сканирования, запускаем
+        if self.date == times.timetoScan_2_0:
+            print(f"Index\tElement\t\t\tNameLocal\tLocalSize\tRemoteName\t\tRemoteDate")
+            for element in self.masslocal:
+                print("===============================")
+                indexfolder = self.masslocal.index(element)
+                for i in element:
+
+
+                    if element.index(i) == 10:
+                        break
+                    #else:
+                        #print(f"{element.index(i)}\t\t{i}\t\t{self.masslocal[indexfolder][element.index(i)]}\t{self.masslocalsize[indexfolder][element.index(i)]}\t\t{self.massremote[indexfolder][element.index(i)]}")
+
+                        #print(f"{element.index(i)}\t\t\t{i}\t\t{self.masslocal[indexfolder][element.index(i)]}\t{self.masslocalsize[indexfolder][element.index(i)]}\t\t{self.massremote[indexfolder][element.index(i)]}\t\t{self.massremotesizes[indexfolder][element.index(i)]}")
+            print(f"\t\t\t\tFirstFolder\t\tSecondFolder\tThirdFolder\t\tFourthFolder\tFifthFolder")
+            print(f"LocalMass:\t\t{len(self.masslocal[0])}\t\t\t{len(self.masslocal[1])}\t\t\t{len(self.masslocal[2])}\t\t\t{len(self.masslocal[3])}\t\t\t{len(self.masslocal[4])}")
+            print(f"LocalMassSize:\t{len(self.masslocalsize[0])}\t\t\t{len(self.masslocalsize[1])}\t\t\t{len(self.masslocalsize[2])}\t\t\t{len(self.masslocalsize[3])}\t\t\t{len(self.masslocalsize[4])}")
+            print(f"RemoteMass:\t\t{len(self.massremote[0])}\t\t\t{len(self.massremote[1])}\t\t\t{len(self.massremote[2])}\t\t\t{len(self.massremote[3])}\t\t\t{len(self.massremote[4])}")
+            print(f"RemoteMassSize:\t{len(self.massremotesizes[0])}\t\t\t{len(self.massremotesizes[1])}\t\t\t{len(self.massremotesizes[2])}\t\t\t{len(self.massremotesizes[3])}\t\t\t{len(self.massremotesizes[4])}")
+            print("=====================================")
+            print(f"Localmass - RemoteMass")
+            for i in range(0, 5):
+                difference = len(self.masslocal[i])-len(self.massremote[i])
+                if difference < 0:
+                    mass = list(set(self.massremote[i]) - set(self.masslocal[i]))
+                    print(f"Remote-Local {i} :\t\t{difference}\t\t{mass}")
+                elif difference == 0:
+                    print(f"Синхронизация  {i} не требудется")
+                else:
+                    mass = list(set(self.masslocal[i]) - set(self.massremote[i]))
+                    print(f"Local-Remote {i} :\t\t{difference}\t\t{mass}")
+
+        else:
+            for element in range(0, 5):
+                result = list(set(self.masslocal[element]) - set(self.massremote[element]))
+                if result == []:
+                    match element:
+                        case 0:
+                            print("Первые\t\tпапки синхронизированны!")
+                        case 1:
+                            print("Вторые\t\tпапки синхронизированны!")
+                        case 2:
+                            print("Третьи\t\tпапки синхронизированны!")
+                        case 3:
+                            print("Четвёртые\tпапки синхронизированны!")
+                        case 4:
+                            print("Пятые\t\tпапки синхронизированны!")
+                else:
+                    match element:
+                        case 0:
+                            print("Разность первых папкок: ", result)
+                            self.uploadfiles(element + 1, result)
+                        case 1:
+                            print("Разность вторых папкок: ", result)
+                            self.uploadfiles(element + 1, result)
+                        case 2:
+                            print("Разность третьих папкок: ", result)
+                            self.uploadfiles(element + 1, result)
+                        case 3:
+                            print("Разность четвёртых папкок: ", result)
+                            self.uploadfiles(element + 1, result)
+                        case 4:
+                            print("Разность пятых папкок: ", result)
+                            self.uploadfiles(element + 1, result)
 
     # Функция загрузки фотографий на сервер
     def uploadfiles(self, numberfolder, result):
@@ -502,6 +527,8 @@ class class_call_center(object):
             worksheet.format(mergerange, {"horizontalAlignment": "CENTER"})
         except Exception as e:
             print(f"Логгирование call-центра сломалось: {e}")
+            self.createnewarrowincallcenter2()
+
 
     # Функция копирования данный в файл для работы
     def checkupdatedatesexcel(self):
@@ -741,6 +768,7 @@ class class_call_center(object):
                 datetime.time.sleep(60)
         except Exception as e:
             print(f"Логгирование call-центра сломалось: {e}")
+            self.createnewarrowincallcenter()
 
     # Функция изменения Call центра
     def changecallcenter(self):
@@ -835,10 +863,12 @@ class class_collecion_of_information(object):
                     if elem['direction'] == 'INBOUND':
                         # Вычисляем телефон абонента
                         phone = elem['phone_from']
-                    # Иначе вызов исходящий:
-                    else:
+                    # Если вызов исходящий:
+                    elif elem['direction'] == 'OUTBOUND':
                         # Вычисляем телефон абонента
                         phone = elem['phone_to']
+                    else:
+                        continue
                     # Добавляем в массив звонков экземпляр класса phoneCall
                     self.addElemInMassCalls(phoneCall, elem, dateandtime, phone, dateandtime2)
                 # Заполняем массив статусов
@@ -857,13 +887,15 @@ class class_collecion_of_information(object):
             datesfromtabel = worksheet.row_values(len(worksheet.col_values(4)))
 
             if datesfromtabel[2] == self.dates[2]:
-                print("\t\tДанные уже были записаны")
+                print(f"\t\tДанные [{datesfromtabel[2]} = {self.dates[2]}] уже были записаны")
             else:
                 # Записываем получившееся результаты в таблицу
                 self.InsertDatesInTable()
 
         except Exception as e:
             print(f"Логгирование статистики по звонкам сломалось: {e}")
+            time.sleep(20)
+            self.collectionofinformation()
 
     # Функция разбора данных по звонкам
     def addinfoinmass(self, massmissescals, massinboundcalls, masssumtimes, numbermanager, elemclass):

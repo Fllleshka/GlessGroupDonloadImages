@@ -19,7 +19,8 @@ def switcher(argument):
 
             # Вычисление следующего времени изменения Call центра
             if argument == times.timetoScan_2_0:
-                times.timetoChangeCallCenter = datetime.time(5, 10).strftime("%H:%M")
+                nexthour2 = datetime.datetime.today().hour + 3
+                times.timetoChangeCallCenter = datetime.time(nexthour2, 0).strftime("%H:%M")
 
             nexthour = datetime.datetime.today().hour + 1
             if nexthour == 24:
