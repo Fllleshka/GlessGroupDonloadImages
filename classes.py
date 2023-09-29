@@ -54,19 +54,32 @@ class class_photos(object):
     # Массив загружаемых фотографий
     massnewphotos = [0, 0, 0, 0, 0]
 
-    def __init__(self, argument):
+    def __init__(self, argument, timetowaitingfunction):
         self.date = argument
+        self.timetowaitingfunction = timetowaitingfunction
 
     # Функция последовательного запуска функций
     def startprocessing(self):
         # Функция разбора фотографий
         self.scanfolderwithimages()
+
+        # Необходима конструкция, которая будет обрабатывать недоступность папок как локальных, так и удалённых.
         # Вызов функции сканирования локальных папок
-        self.scanfolderforimages()
+        thr1 = Thread(target=self.scanfolderforimages(), daemon=True)
+        thr1.start()
+        thr1.join(self.timetowaitingfunction)
+
         # Вызов функции сканирования удалённых папок
-        self.scanfilesinremoteserver()
-        # Вызов функции выявления различия файлов на локальном и удалённом сервере
-        self.comparisonlists()
+        thr2 = Thread(target=self.scanfilesinremoteserver(), daemon=True)
+        thr2.start()
+        thr2.join(self.timetowaitingfunction)
+
+        if thr1.is_alive() and thr2.is_alive():
+            print("Потоки сканирования папок не успели завершиться!")
+        else:
+            print("Потоки сканирования папок успели завершиться!\nВыполняем сравнение")
+            # Вызов функции выявления различия файлов на локальном и удалённом сервере
+            self.comparisonlists()
 
     # Функция записи логов папок фотографий
     def createnewarrowinlogs(self, lenphotos):
@@ -789,6 +802,8 @@ class class_call_center(object):
 # Класс работы со сбором статистики по звонкам
 class class_collecion_of_information(object):
 
+    # Счётчик попыток
+    attemptcounter = 0
     # Массив звонков
     calls = []
     # Массив данных
@@ -809,6 +824,7 @@ class class_collecion_of_information(object):
 
     # Функциия импорта и систематизация статистики по звонкам
     def collectionofinformation(self):
+
 
         # Класс звонка
         class phoneCall:
@@ -893,9 +909,14 @@ class class_collecion_of_information(object):
                 self.InsertDatesInTable()
 
         except Exception as e:
-            print(f"Логгирование статистики по звонкам сломалось: {e}")
+            self.attemptcounter += 1
+            print(f"Попытка: {self.attemptcounter}\nЛоггирование статистики по звонкам сломалось: {e}")
+
             time.sleep(20)
-            self.collectionofinformation()
+            if self.attemptcounter <= 10:
+                self.collectionofinformation()
+            else:
+                print(f"Попытка: {self.attemptcounter} закончилась неудачно.")
 
     # Функция разбора данных по звонкам
     def addinfoinmass(self, massmissescals, massinboundcalls, masssumtimes, numbermanager, elemclass):

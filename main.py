@@ -33,7 +33,7 @@ def switcher(argument):
             printer(times.timetoCollectionOfInformation, "Время импорта статистики по звонкам")
 
             # Инициализация класса
-            x = class_collecion_of_information(argument)
+            x = class_collecion_of_information(argument, timetowaitingfunction)
             # Запускаем поток с функцией сбора статистики call-центра
             t1 = Thread(target=x.collectionofinformation)
             t1.start()
