@@ -12,7 +12,7 @@ def switcher(argument):
             printer(times.timetoScan, "Функция сканирования папки с фотографиями")
 
             # Инициализация класса
-            x = class_photos(argument)
+            x = class_photos(argument, timetowaitingfunction)
             # Запускаем поток с функцией разбора и синхронизации фотографий
             t0 = Thread(target = x.startprocessing())
             t0.start()
