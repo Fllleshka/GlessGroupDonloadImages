@@ -10,6 +10,7 @@ import openpyxl
 import win32com.client
 import requests
 import json
+import threading
 
 from tqdm import tqdm
 from ftplib import FTP
@@ -65,21 +66,17 @@ class class_photos(object):
 
         # Необходима конструкция, которая будет обрабатывать недоступность папок как локальных, так и удалённых.
         # Вызов функции сканирования локальных папок
-        thr1 = Thread(target=self.scanfolderforimages(), daemon=True)
+        thr1 = threading.Timer(self.timetowaitingfunction, self.scanfolderforimages)
         thr1.start()
-        thr1.join(self.timetowaitingfunction)
 
         # Вызов функции сканирования удалённых папок
-        thr2 = Thread(target=self.scanfilesinremoteserver(), daemon=True)
+        thr2 = threading.Timer(self.timetowaitingfunction, self.scanfilesinremoteserver)
         thr2.start()
-        thr2.join(self.timetowaitingfunction)
 
-        if thr1.is_alive() and thr2.is_alive():
-            print("Потоки сканирования папок не успели завершиться!")
-        else:
-            print("Потоки сканирования папок успели завершиться!\nВыполняем сравнение")
-            # Вызов функции выявления различия файлов на локальном и удалённом сервере
-            self.comparisonlists()
+        # Вызов функции выявления различия файлов на локальном и удалённом сервере
+        thr1.join()
+        thr2.join()
+        self.comparisonlists()
 
     # Функция записи логов папок фотографий
     def createnewarrowinlogs(self, lenphotos):
