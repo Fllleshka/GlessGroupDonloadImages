@@ -11,6 +11,8 @@ import win32com.client
 import requests
 import json
 import threading
+import stopit
+import multiprocessing
 
 from tqdm import tqdm
 from ftplib import FTP
@@ -27,7 +29,7 @@ class times:
     timetoScan = today.time().strftime("%H:%M")
     #timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
     # Время для работы изменения Call-центра
-    timetoChangeCallCenter = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
+    timetoChangeCallCenter = (today + datetime.timedelta(minutes=4)).strftime("%H:%M")
     # Время для сбора статистики по звонкам
     #timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
     timetoCollectionOfInformation = (today + datetime.timedelta(minutes=5)).strftime("%H:%M")
@@ -39,8 +41,6 @@ class times:
     # Время для проверки 2.0 на сканирование фотографий
     timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
     #timetoScan_2_0 = today.time().strftime("%H:%M")
-
-
 
 # Класс работы с фотографиями
 class class_photos(object):
@@ -64,18 +64,37 @@ class class_photos(object):
         # Функция разбора фотографий
         self.scanfolderwithimages()
 
+        # Запускаем ограничительный таймер на потоки
+
+
         # Необходима конструкция, которая будет обрабатывать недоступность папок как локальных, так и удалённых.
         # Вызов функции сканирования локальных папок
-        thr1 = threading.Timer(self.timetowaitingfunction, self.scanfolderforimages)
+        thr1 = multiprocessing.Process(target = self.scanfolderforimages)
         thr1.start()
 
         # Вызов функции сканирования удалённых папок
-        thr2 = threading.Timer(self.timetowaitingfunction, self.scanfilesinremoteserver)
+        thr2 = multiprocessing.Process(target = self.scanfilesinremoteserver)
         thr2.start()
 
+        # Ожидание окончания потоков
+        thr1.join(self.timetowaitingfunction)
+        thr2.join(self.timetowaitingfunction)
+
+        # Убиваем потоки, если превышен лимит времени выполнения функции
+        if thr1.is_alive():
+            print("Поток сканирования локальных папок заебал. Убиваем его!")
+            thr1.terminate()
+            thr1.join()
+        if thr2.is_alive():
+            print("Поток сканирования удалённых папок заебал. Убиваем его!")
+            thr2.terminate()
+            thr2.join()
+
+        # Останаавливаем поток по таймеру
+        #self.scanfolderforimages.timeout(seconds=self.timetowaitingfunction)
+        #self.scanfolderforimages.timeout(seconds=self.scanfilesinremoteserver)
+
         # Вызов функции выявления различия файлов на локальном и удалённом сервере
-        thr1.join()
-        thr2.join()
         self.comparisonlists()
 
     # Функция записи логов папок фотографий
@@ -296,6 +315,7 @@ class class_photos(object):
             print("Удаление папок завершено")
 
     # Функция сканирования локальных папок с фотографиями
+    @stopit.threading_timeoutable(default="TimeOut локального сканирования!")
     def scanfolderforimages(self):
         print(f"Начинаем сканирование данных из локальных папок")
         # Пробегаемся по массиву и заполняем данные по называнию файлов
@@ -337,6 +357,7 @@ class class_photos(object):
                     self.masslocalsize[numberfolder - 1].append(datesize)
 
     # Функция сканирования удалённых папкок с фотографиями
+    @stopit.threading_timeoutable(default="TimeOut уладённого сканирования!")
     def scanfilesinremoteserver(self):
         print(f"Начинаем сканирование данных из удалённых папок")
         # Инициализируем попытку сбора данных с удалённого сервера
@@ -538,7 +559,6 @@ class class_call_center(object):
         except Exception as e:
             print(f"Логгирование call-центра сломалось: {e}")
             self.createnewarrowincallcenter2()
-
 
     # Функция копирования данный в файл для работы
     def checkupdatedatesexcel(self):

@@ -76,11 +76,12 @@ def switcher(argument):
             return print("Время сейчас:\t", default)
 
 # Вечный цикл с таймером 30 секунд
-while True:
-    # Время сейчас
-    today = datetime.datetime.today()
-    todaytime = today.strftime("%H:%M")
-    # Запускаем функцию обработки времени
-    switcher(todaytime)
-    # Засыпаем функцию
-    time.sleep(30)
+if __name__ == '__main__':
+    while True:
+        # Время сейчас
+        today = datetime.datetime.today()
+        todaytime = today.strftime("%H:%M")
+        # Запускаем функцию обработки времени
+        switcher(todaytime)
+        # Засыпаем функцию
+        time.sleep(30)
