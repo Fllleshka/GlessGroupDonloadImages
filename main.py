@@ -9,24 +9,31 @@ def switcher(argument):
     match argument:
         # Время сканирования папки
         case times.timetoScan:
-            printer(times.timetoScan, "Функция сканирования папки с фотографиями")
+            text = "Функция сканирования папки с фотографиями"
+            printer(times.timetoScan, text)
 
-            # Инициализация класса
-            x = class_photos(argument, timetowaitingfunction)
-            # Запускаем поток с функцией разбора и синхронизации фотографий
-            t0 = Thread(target = x.startprocessing())
-            t0.start()
+            try:
+                # Инициализация класса
+                x = class_photos(argument, timetowaitingfunction)
+                # Запускаем поток с функцией разбора и синхронизации фотографий
+                t0 = Thread(target = x.startprocessing())
+                t0.start()
 
-            # Вычисление следующего времени изменения Call центра
-            if argument == times.timetoScan_2_0:
-                nexthour2 = datetime.datetime.today().hour + 3
-                times.timetoChangeCallCenter = datetime.time(nexthour2, 0).strftime("%H:%M")
+                # Вычисление следующего времени изменения Call центра
+                if argument == times.timetoScan_2_0:
+                    nexthour2 = datetime.datetime.today().hour + 3
+                    times.timetoChangeCallCenter = datetime.time(nexthour2, 0).strftime("%H:%M")
 
-            nexthour = datetime.datetime.today().hour + 1
-            if nexthour == 24:
-                nexthour = 0
-            times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
-            print("Следующее время синхронизации фотографий:\t", times.timetoScan)
+                nexthour = datetime.datetime.today().hour + 1
+                if nexthour == 24:
+                    nexthour = 0
+                times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
+                print("Следующее время синхронизации фотографий:\t", times.timetoScan)
+            except Exception as exception:
+                # Инициализация класса
+                error_message = class_send_erorr_message(argument, text, exception, botkey)
+                # Функция отправки сообщения в чат системному администратору
+                error_message.send_message()
 
         # Время для сбора статистики call-центра
         case times.timetoCollectionOfInformation:
@@ -69,7 +76,7 @@ def switcher(argument):
             t3.start()
 
             times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
-            print("Следующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
+            print("\tСледующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
 
         # Время которое не выбрано для события
         case default:

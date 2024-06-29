@@ -1,7 +1,7 @@
 import datetime
 import os
 import time
-
+import telebot
 import gspread
 import win32security
 import shutil
@@ -11,8 +11,7 @@ import win32com.client
 import requests
 import json
 import threading
-import stopit
-import multiprocessing
+from dateutil.relativedelta import relativedelta
 
 from tqdm import tqdm
 from ftplib import FTP
@@ -64,16 +63,13 @@ class class_photos(object):
         # Функция разбора фотографий
         self.scanfolderwithimages()
 
-        # Запускаем ограничительный таймер на потоки
-
-
         # Необходима конструкция, которая будет обрабатывать недоступность папок как локальных, так и удалённых.
         # Вызов функции сканирования локальных папок
-        thr1 = multiprocessing.Process(target = self.scanfolderforimages)
+        thr1 = threading.Thread(target = self.scanfolderforimages)
         thr1.start()
 
         # Вызов функции сканирования удалённых папок
-        thr2 = multiprocessing.Process(target = self.scanfilesinremoteserver)
+        thr2 = threading.Thread(target = self.scanfilesinremoteserver)
         thr2.start()
 
         # Ожидание окончания потоков
@@ -81,19 +77,14 @@ class class_photos(object):
         thr2.join(self.timetowaitingfunction)
 
         # Убиваем потоки, если превышен лимит времени выполнения функции
-        if thr1.is_alive():
+        '''if thr1.is_alive():
             print("Поток сканирования локальных папок заебал. Убиваем его!")
-            thr1.terminate()
-            thr1.join()
+            thr1._stop.set()
+
         if thr2.is_alive():
             print("Поток сканирования удалённых папок заебал. Убиваем его!")
-            thr2.terminate()
-            thr2.join()
-
-        # Останаавливаем поток по таймеру
-        #self.scanfolderforimages.timeout(seconds=self.timetowaitingfunction)
-        #self.scanfolderforimages.timeout(seconds=self.scanfilesinremoteserver)
-
+            thr2._stop.set()
+        '''
         # Вызов функции выявления различия файлов на локальном и удалённом сервере
         self.comparisonlists()
 
@@ -315,7 +306,6 @@ class class_photos(object):
             print("Удаление папок завершено")
 
     # Функция сканирования локальных папок с фотографиями
-    @stopit.threading_timeoutable(default="TimeOut локального сканирования!")
     def scanfolderforimages(self):
         print(f"Начинаем сканирование данных из локальных папок")
         # Пробегаемся по массиву и заполняем данные по называнию файлов
@@ -340,8 +330,11 @@ class class_photos(object):
                     self.masslocal[4].remove('Thumbs.db')
                 case _:
                     continue
+
+        print(f"Локальных файлов: {len(self.masslocal[0])}\t{len(self.masslocal[1])}\t{len(self.masslocal[2])}\t{len(self.masslocal[3])}\t{len(self.masslocal[4])}")
+
         # Если время для продвинутого сканирования, запускаем
-        if self.date == times.timetoScan_2_0:
+        '''if self.date == times.timetoScan_2_0:
             print(f"Начинаем сканирование данных времени из локальных папок")
             # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
             for element in tqdm(self.masslocal):
@@ -355,9 +348,9 @@ class class_photos(object):
                     datesize = os.stat(pathphoto).st_size
                     # Добавляем данные по результатам в массив
                     self.masslocalsize[numberfolder - 1].append(datesize)
+        '''
 
     # Функция сканирования удалённых папкок с фотографиями
-    @stopit.threading_timeoutable(default="TimeOut уладённого сканирования!")
     def scanfilesinremoteserver(self):
         print(f"Начинаем сканирование данных из удалённых папок")
         # Инициализируем попытку сбора данных с удалённого сервера
@@ -388,6 +381,7 @@ class class_photos(object):
                         continue
             # Закрываем соединение с удалённым сервером
             datesftp.close()
+            print(f"Удалённых файлов: {len(self.massremote[0])}\t{len(self.massremote[1])}\t{len(self.massremote[2])}\t{len(self.massremote[3])}\t{len(self.massremote[4])}")
             # Если время для продвинутого сканирования, запускаем
             if self.date == times.timetoScan_2_0:
                 # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
@@ -404,6 +398,7 @@ class class_photos(object):
                         self.importremotedatesfromftp(datesftp, remotepathphoto, numberfolder)
                     # Закрываем соединение с удалённым сервером
                     datesftp.close()
+
         except Exception as e:
             print("Синхронизация папок не удалась. Попробуем в следующий раз.")
             print(f"\t{e}")
@@ -439,8 +434,6 @@ class class_photos(object):
                 print("===============================")
                 indexfolder = self.masslocal.index(element)
                 for i in element:
-
-
                     if element.index(i) == 10:
                         break
                     #else:
@@ -464,7 +457,6 @@ class class_photos(object):
                 else:
                     mass = list(set(self.masslocal[i]) - set(self.massremote[i]))
                     print(f"Local-Remote {i} :\t\t{difference}\t\t{mass}")
-
         else:
             for element in range(0, 5):
                 result = list(set(self.masslocal[element]) - set(self.massremote[element]))
@@ -510,7 +502,7 @@ class class_photos(object):
         ftp.cwd(ftppath)
 
         # Перебираем элементы
-        for element in result:
+        for element in tqdm(result):
             if element == "Thumbs.db":
                 continue
             else:
@@ -558,6 +550,7 @@ class class_call_center(object):
             worksheet.format(mergerange, {"horizontalAlignment": "CENTER"})
         except Exception as e:
             print(f"Логгирование call-центра сломалось: {e}")
+            time.sleep(5)
             self.createnewarrowincallcenter2()
 
     # Функция копирования данный в файл для работы
@@ -697,7 +690,7 @@ class class_call_center(object):
             for element in managerlists:
                 if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
                     numbermanager = numbermanagers[massmanagers.index(element[0])]
-                    print("Необходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
+                    print("\t\tНеобходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
                           numbermanager,
                           "'")
                     urlforapi = urlapi + str(numbermanager) + '/agent'
@@ -710,7 +703,7 @@ class class_call_center(object):
                         print("\tСтатус менеджера: ", element[0], " = ", statusget)
                 else:
                     numbermanager = numbermanagers[massmanagers.index(element[0])]
-                    print("Необходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
+                    print("\t\tНеобходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
                           numbermanager,
                           "'")
                     urlforapi = urlapi + str(numbermanager) + '/agent'
@@ -798,6 +791,7 @@ class class_call_center(object):
                 datetime.time.sleep(60)
         except Exception as e:
             print(f"Логгирование call-центра сломалось: {e}")
+            time.sleep(10)
             self.createnewarrowincallcenter()
 
     # Функция изменения Call центра
@@ -830,18 +824,36 @@ class class_collecion_of_information(object):
     # Массив для подсчёта принятых звонков
     massinboundcalls = [0, 0, 0, 0]
     # Массив для подсчёта общего времени общения с клиентами
-    masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
+    masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0),
+                    datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
     # Массив менеджеров которые сегодня работали
     workedmanagers = [0, 0, 0]
     # Массив названий столбцов
     masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+    # Дата начала отчёта (вчерашний день начало для)
+    dateAndTimeStart = ""
+    # Дата окончания отчёта (сегодняшний день начало дня)
+    dateAndTimeEnd = ""
 
+    # Инициализация данных переменных
     def __init__(self, argument):
+        self.attemptcounter = 0
+        self.calls = []
+        self.dates = []
+        self.massmissescals = [0, 0, 0, 0]
+        self.massinboundcalls = [0, 0, 0, 0]
+        self.masssumtimes = [datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0), datetime.timedelta(milliseconds=0)]
+        self.workedmanagers = [0, 0, 0]
+        self.masscolumns = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
+        self.dateAndTimeStart = ""
+        self.dateAndTimeEnd = ""
+
         self.date = argument
+        self.dateAndTimeStart = str((datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")) + "T00:00:00.000Z"
+        self.dateAndTimeEnd = str(datetime.datetime.today().strftime("%Y-%m-%d")) + "T00:00:00.000Z"
 
     # Функциия импорта и систематизация статистики по звонкам
     def collectionofinformation(self):
-
 
         # Класс звонка
         class phoneCall:
@@ -870,18 +882,17 @@ class class_collecion_of_information(object):
 
         try:
             # Дата начала отчёта (вчерашний день начало для)
-            dateAndTimeStart = (datetime.datetime.today() + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
-            dateAndTimeStart += "T00:00:00.000Z"
+            print(f"\t\tdateAndTimeStart = {self.dateAndTimeStart}")
+
             # Дата окончания отчёта (сегодняшний день начало дня)
-            dateAndTimeEnd = datetime.datetime.today().strftime("%Y-%m-%d")
-            dateAndTimeEnd += "T00:00:00.000Z"
+            print(f"\t\tdateAndTimeEnd = {self.dateAndTimeEnd}")
 
             # Пробегаемся по списку менеджеров
             for element in numbermanagers:
                 # Формируем данные для запроса
                 paramsinfo['userId'] = element
-                paramsinfo['dateTo'] = dateAndTimeEnd
-                paramsinfo['dateFrom'] = dateAndTimeStart
+                paramsinfo['dateTo'] = self.dateAndTimeEnd
+                paramsinfo['dateFrom'] = self.dateAndTimeStart
                 # Делаем запрос к API
                 statusrequest = requests.get(urlforstatistics, params=paramsinfo, headers=headers)
                 # Формираем Json
@@ -918,11 +929,13 @@ class class_collecion_of_information(object):
             worksheet = self.datesGoogleTable()
             # Проверяем были ли записаны данные ранее
             datesfromtabel = worksheet.row_values(len(worksheet.col_values(4)))
+            # Записываем получившееся результаты в таблицу
+            #self.InsertDatesInTable()
 
+            # Записываем получившееся результаты в таблицу
             if datesfromtabel[2] == self.dates[2]:
                 print(f"\t\tДанные [{datesfromtabel[2]} = {self.dates[2]}] уже были записаны")
             else:
-                # Записываем получившееся результаты в таблицу
                 self.InsertDatesInTable()
 
         except Exception as e:
@@ -1052,7 +1065,7 @@ class class_generation_stat_uploadphotos(object):
             # Проверяем дату сегодняшнюю
             today = datetime.datetime.today()
             todaytime = today.strftime("%d")
-            print(f"Дата сейчас: {todaytime}")
+            print(f"\tДата сейчас: {todaytime}")
             # Проверяем если начало месяца (01 число)
             if todaytime == "01":
 
@@ -1097,6 +1110,27 @@ class class_generation_stat_uploadphotos(object):
                 nulldate = today.strftime("%d %B %Y")
                 worksheet.update_cell(2, 9, nulldate)
             else:
-                print(f"Время для обнуления ещё не пришло.")
+                print(f"\tВремя для обнуления ещё не пришло.")
         except Exception as e:
             print(f"Логгирование статистики фотографий сломалось: {e}")
+
+# Класс отправки сообщений от телеграмм бота
+class class_send_erorr_message(object):
+    # Инициализация класса
+    def __init__(self, argument, text, exception,):
+        self.time = argument
+        self.function = text
+        self.exception = exception
+        self.botkey = botkey
+
+    # Функция отправки сообщения об ошибке администратору, системному администратору
+    def send_message(self):
+        # Формирование сообщения
+        message = "Возникла проблема с функцией: " + str(self.function) + " [" + str(self.time) + "]\n" + "Ошибка типа:\n{" + str(self.exception) + "}\n"
+        # Токен для связи с ботом
+        bot = telebot.TeleBot(botkey)
+        # Отравляем сообщение на рабочий телефон администратора
+        bot.send_message(1871580124,text=message)
+        # Отравляем сообщение на личный телефон системного администратора
+        bot.send_message(1917167694, text=message)
+        return message
