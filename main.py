@@ -1,13 +1,10 @@
-import time
-from threading import Thread
-
 from helperscripts import *
 from classes import *
 
 # Функция выбора действия от времени
 def switcher(argument):
     match argument:
-        # Время сканирования папки
+        # Время для сканирования папки
         case times.timetoScan:
             text = "Функция сканирования папки с фотографиями"
             printer(times.timetoScan, text)
@@ -37,46 +34,66 @@ def switcher(argument):
 
         # Время для сбора статистики call-центра
         case times.timetoCollectionOfInformation:
-            printer(times.timetoCollectionOfInformation, "Время импорта статистики по звонкам")
+            text = "Время импорта статистики по звонкам"
+            printer(times.timetoCollectionOfInformation, text)
 
-            # Инициализация класса
-            x = class_collecion_of_information(argument)
-            # Запускаем поток с функцией сбора статистики call-центра
-            t1 = Thread(target=x.collectionofinformation)
-            t1.start()
-
-            times.timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
-            print("Следующее время для сбора статистики по звонкам\t", times.timetoCollectionOfInformation)
+            try:
+                # Инициализация класса
+                x = class_collecion_of_information(argument)
+                # Запускаем поток с функцией сбора статистики call-центра
+                t1 = Thread(target=x.collectionofinformation)
+                t1.start()
+                times.timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
+                print("Следующее время для сбора статистики по звонкам\t", times.timetoCollectionOfInformation)
+            except Exception as exception:
+                # Инициализация класса
+                error_message = class_send_erorr_message(argument, text, exception, botkey)
+                # Функция отправки сообщения в чат системному администратору
+                error_message.send_message()
 
         # Время для изменения call-центра
         case times.timetoChangeCallCenter:
-            printer(times.timetoChangeCallCenter, "Функция изменения call центра")
+            text = "Функция изменения call центра"
+            printer(times.timetoChangeCallCenter, text)
 
-            # Инициализация класса
-            x = class_call_center(argument)
-            # Запускаем поток с функцией изменения call-центра
-            t2 = Thread(target = x.changecallcenter())
-            t2.start()
+            try:
+                # Инициализация класса
+                x = class_call_center(argument)
+                # Запускаем поток с функцией изменения call-центра
+                t2 = Thread(target = x.changecallcenter())
+                t2.start()
+                # Вычисление следующего времени сканирования
+                nexthour = datetime.datetime.today().hour + 1
+                if nexthour == 24:
+                    nexthour = 0
+                times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
+                print("Следующее время для работы изменения Call-центра\t", times.timetoChangeCallCenter)
 
-            # Вычисление следующего времени сканирования
-            nexthour = datetime.datetime.today().hour + 1
-            if nexthour == 24:
-                nexthour = 0
-            times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
-            print("Следующее время для работы изменения Call-центра\t", times.timetoChangeCallCenter)
+            except Exception as exception:
+                # Инициализация класса
+                error_message = class_send_erorr_message(argument, text, exception, botkey)
+                # Функция отправки сообщения в чат системному администратору
+                error_message.send_message()
 
         # Время для сбора статистики по загруженным фотографиям
         case times.timetoGenerationStatUploadPhotos:
-            printer(times.timetoChangeCallCenter, "Функция сбора статистики по загруженным фотографиям")
+            text = "Функция сбора статистики по загруженным фотографиям"
+            printer(times.timetoChangeCallCenter, text)
 
-            # Инициализация класса
-            x = class_generation_stat_uploadphotos(argument)
-            # Запускаем поток с функцией подсчёта статистики загруженных фотографий
-            t3 = Thread(target=x.generationstatuploadphotos())
-            t3.start()
+            try:
+                # Инициализация класса
+                x = class_generation_stat_uploadphotos(argument)
+                # Запускаем поток с функцией подсчёта статистики загруженных фотографий
+                t3 = Thread(target=x.generationstatuploadphotos())
+                t3.start()
 
-            times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
-            print("\tСледующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
+                times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
+                print("\tСледующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
+            except Exception as exception:
+                # Инициализация класса
+                error_message = class_send_erorr_message(argument, text, exception, botkey)
+                # Функция отправки сообщения в чат системному администратору
+                error_message.send_message()
 
         # Время которое не выбрано для события
         case default:

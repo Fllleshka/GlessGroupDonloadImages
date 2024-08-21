@@ -1,6 +1,8 @@
 import datetime
 import os
 import time
+from time import sleep
+
 import telebot
 import gspread
 import win32security
@@ -11,7 +13,6 @@ import win32com.client
 import requests
 import json
 import threading
-from dateutil.relativedelta import relativedelta
 
 from tqdm import tqdm
 from ftplib import FTP
@@ -31,7 +32,7 @@ class times:
     timetoChangeCallCenter = (today + datetime.timedelta(minutes=4)).strftime("%H:%M")
     # Время для сбора статистики по звонкам
     #timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
-    timetoCollectionOfInformation = (today + datetime.timedelta(minutes=5)).strftime("%H:%M")
+    timetoCollectionOfInformation = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
     # Время собрания (пока не используется)
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
     # Время сбора статистики по месячной работе прикрепления фотографий к карточкам товаров
@@ -76,17 +77,29 @@ class class_photos(object):
         thr1.join(self.timetowaitingfunction)
         thr2.join(self.timetowaitingfunction)
 
-        # Убиваем потоки, если превышен лимит времени выполнения функции
-        '''if thr1.is_alive():
-            print("Поток сканирования локальных папок заебал. Убиваем его!")
-            thr1._stop.set()
+        # Запуск таймера по ограничению работы потоков
+        thr3 = threading.Thread(target = self.killingthreads, args=(timetowaitingfunction, thr1, thr2))
+        thr3.start()
 
-        if thr2.is_alive():
-            print("Поток сканирования удалённых папок заебал. Убиваем его!")
-            thr2._stop.set()
-        '''
         # Вызов функции выявления различия файлов на локальном и удалённом сервере
         self.comparisonlists()
+
+    # Функция ограничения потоков по времени
+    def killingthreads(self, timelimit, thr1, thr2):
+
+        #Таймер отсчёта времени оставшегося жить потокам
+        while timelimit:
+            timelimit -= 1
+            time.sleep(1)
+        # Убиваем потоки, если превышен лимит времени выполнения функции
+        if thr1.is_alive():
+            print("Поток сканирования локальных папок работает слишком долго. Убиваем его!")
+            thr1._stop.set()
+        elif thr2.is_alive():
+            print("Поток сканирования удалённых папок работает слишком долго. Убиваем его!")
+            thr2._stop.set()
+        else:
+            print("Потоки сканирования папок отработали в штатном режиме.")
 
     # Функция записи логов папок фотографий
     def createnewarrowinlogs(self, lenphotos):
@@ -208,17 +221,20 @@ class class_photos(object):
                             int(worksheet.get_values(masssotr.CellTable_pushkar)[0][0]),
                             int(worksheet.get_values(masssotr.CellTable_ivanov)[0][0]),
                             int(worksheet.get_values(masssotr.CellTable_none)[0][0])]
+
+            print(massolddates)
             # Новый массив для результата сложения
             newmass = []
             # Прибавляем новые значения к старым
             for elementfirst, elementsecond in zip(massolddates, massnewphotos):
                 newmass += [elementfirst + elementsecond]
+            print(newmass)
             # Обновляем значения в таблице
-            worksheet.update(masssotr.CellTable_fleysner, newmass[0])
-            worksheet.update(masssotr.CellTable_kireev, newmass[1])
-            worksheet.update(masssotr.CellTable_pushkar, newmass[2])
-            worksheet.update(masssotr.CellTable_ivanov, newmass[3])
-            worksheet.update(masssotr.CellTable_none, newmass[4])
+            worksheet.update_acell(masssotr.CellTable_fleysner, newmass[0])
+            worksheet.update_acell(masssotr.CellTable_kireev, newmass[1])
+            worksheet.update_acell(masssotr.CellTable_pushkar, newmass[2])
+            worksheet.update_acell(masssotr.CellTable_ivanov, newmass[3])
+            worksheet.update_acell(masssotr.CellTable_none, newmass[4])
 
         except Exception as e:
             print(f"Логгирование статистики фотографий сломалось: {e}")
@@ -283,6 +299,7 @@ class class_photos(object):
                                     self.renameanduploadimage(pathimage, numberfolder)
                                     # Увеличиваем счётчик
                                     numberfolder = numberfolder + 1
+
             # После окончания загрузки фотографий по папкам удаляем папку
             for elem in list:
                 # Обыгрывание Thumbs.db
@@ -808,7 +825,6 @@ class class_call_center(object):
         result = self.selectmenegers(massive)
         # Записываем изменения в таблицу логгирования
         self.createnewarrowincallcenter()
-        print(result)
 
 # Класс работы со сбором статистики по звонкам
 class class_collecion_of_information(object):
@@ -881,12 +897,6 @@ class class_collecion_of_information(object):
                       f"\t\t{self.status}")
 
         try:
-            # Дата начала отчёта (вчерашний день начало для)
-            print(f"\t\tdateAndTimeStart = {self.dateAndTimeStart}")
-
-            # Дата окончания отчёта (сегодняшний день начало дня)
-            print(f"\t\tdateAndTimeEnd = {self.dateAndTimeEnd}")
-
             # Пробегаемся по списку менеджеров
             for element in numbermanagers:
                 # Формируем данные для запроса
@@ -931,6 +941,12 @@ class class_collecion_of_information(object):
             datesfromtabel = worksheet.row_values(len(worksheet.col_values(4)))
             # Записываем получившееся результаты в таблицу
             #self.InsertDatesInTable()
+
+            # Дата начала отчёта (вчерашний день начало для)
+            print(f"\t\tdateAndTimeStart = {self.dateAndTimeStart}")
+
+            # Дата окончания отчёта (сегодняшний день начало дня)
+            print(f"\t\tdateAndTimeEnd = {self.dateAndTimeEnd}")
 
             # Записываем получившееся результаты в таблицу
             if datesfromtabel[2] == self.dates[2]:
@@ -1068,12 +1084,8 @@ class class_generation_stat_uploadphotos(object):
             print(f"\tДата сейчас: {todaytime}")
             # Проверяем если начало месяца (01 число)
             if todaytime == "01":
-
                 # Вычисляем месяц за который сохраняем статистику
-                statmonth = today.replace(day=15).strftime("%B")
-                statyear = today.replace(day=15).strftime("%Y")
-                statmonthandyear = statmonth + " " + statyear
-
+                statmonthandyear = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime('%B %Y')
                 # Подключаемся к сервисному аккаунту
                 gc = gspread.service_account(CREDENTIALS_FILE)
                 # Подключаемся к таблице по ключу таблицы
@@ -1092,16 +1104,16 @@ class class_generation_stat_uploadphotos(object):
                 # Запись данных в табличку
                 for element in range(0, 7):
                     column = element + 12
-                    if column == 12:
-                        worksheet.update_cell(newstr, column, statmonthandyear)
-                        worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
-                    elif column == 18:
-                        worksheet.update_cell(newstr, column, sumphotos)
-                        worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
-                    else:
-                        worksheet.update_cell(newstr, column, self.massvalues[element - 1])
-                        worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
-
+                    match column:
+                        case 12:
+                            worksheet.update_cell(newstr, column, statmonthandyear)
+                            worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
+                        case 18:
+                            worksheet.update_cell(newstr, column, sumphotos)
+                            worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
+                        case dafault:
+                            worksheet.update_cell(newstr, column, self.massvalues[element - 1])
+                            worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
                 # Обнуляем значения, которые подсчитываются онлайн
                 for element in range(2, 7):
                     worksheet.update_cell(element, 8, 0)
@@ -1110,14 +1122,17 @@ class class_generation_stat_uploadphotos(object):
                 nulldate = today.strftime("%d %B %Y")
                 worksheet.update_cell(2, 9, nulldate)
             else:
-                print(f"\tВремя для обнуления ещё не пришло.")
+                text = f"\tВремя для обнуления ещё не пришло."
+                print(text)
+                return text
         except Exception as e:
-            print(f"Логгирование статистики фотографий сломалось: {e}")
+            text = f"Логгирование статистики фотографий сломалось: {e}"
+            print(text)
 
 # Класс отправки сообщений от телеграмм бота
 class class_send_erorr_message(object):
     # Инициализация класса
-    def __init__(self, argument, text, exception,):
+    def __init__(self, argument, text, exception, botkey):
         self.time = argument
         self.function = text
         self.exception = exception
