@@ -351,7 +351,7 @@ class class_photos(object):
         print(f"Локальных файлов: {len(self.masslocal[0])}\t{len(self.masslocal[1])}\t{len(self.masslocal[2])}\t{len(self.masslocal[3])}\t{len(self.masslocal[4])}")
 
         # Если время для продвинутого сканирования, запускаем
-        '''if self.date == times.timetoScan_2_0:
+        if self.date == times.timetoScan_2_0:
             print(f"Начинаем сканирование данных времени из локальных папок")
             # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
             for element in tqdm(self.masslocal):
@@ -365,7 +365,6 @@ class class_photos(object):
                     datesize = os.stat(pathphoto).st_size
                     # Добавляем данные по результатам в массив
                     self.masslocalsize[numberfolder - 1].append(datesize)
-        '''
 
     # Функция сканирования удалённых папкок с фотографиями
     def scanfilesinremoteserver(self):
@@ -375,6 +374,7 @@ class class_photos(object):
             # Открываем связь с удалённым сервером
             datesftp = FTP(nameSite)
             datesftp.login(ftpLogin, ftpPass)
+            datesftp.set_pasv(False)
             # Получаем данные о том какие данные есть на удалённом сервере
             listalldirectors = datesftp.nlst()
             for element in tqdm(listalldirectors):
@@ -406,6 +406,7 @@ class class_photos(object):
                     # Открываем связь с удалённым сервером
                     datesftp = FTP(nameSite)
                     datesftp.login(ftpLogin, ftpPass)
+                    datesftp.set_pasv(False)
                     # Вычисляем номер папки
                     numberfolder = self.massremote.index(element) + 1
                     # Запускам цикл по фотографиям, которые находятся в папках
@@ -515,6 +516,7 @@ class class_photos(object):
         # Подключение к удалённому серверу по FTP
         ftp = FTP(nameSite)
         ftp.login(ftpLogin, ftpPass)
+        ftp.set_pasv(False)
         ftppath = "/" + str(numberfolder) + "/"
         ftp.cwd(ftppath)
 
@@ -777,33 +779,34 @@ class class_call_center(object):
                 print("\t\tДанные уже были записаны")
             # Если же эти данные не были записаны, записываем
             else:
-                greencolor = {"backgroundColor": {"red": 0.63, "green": 1.0, "blue": 0.65},
-                              "horizontalAlignment": "CENTER"}
-                redcolor = {"backgroundColor": {"red": 1.0, "green": 0.65, "blue": 0.63},
-                            "horizontalAlignment": "CENTER"}
+
                 # Добавляем строку в конец фаила логгирования
                 worksheet.update_cell(newstr, 1, newnumber)
                 worksheet.update_cell(newstr, 2, today)
-                worksheet.update_cell(newstr, 3, managerslist[0])
+
+                for element in range(0, 4):
+                    if managerslist[element] == '"ONLINE"' or managerslist[element] == '"OFFLINE"':
+                        worksheet.update_cell(newstr, element + 3, managerslist[element])
+                    else:
+                        worksheet.update_cell(newstr, element + 3, "Ошибка данных")
+
                 if managerslist[0] == '"ONLINE"':
-                    worksheet.format("C" + str(newstr), greencolor)
+                    worksheet.format("C" + str(newstr), colorsforbuttons.greencolor)
                 else:
-                    worksheet.format("C" + str(newstr), redcolor)
-                worksheet.update_cell(newstr, 4, managerslist[1])
+                    worksheet.format("C" + str(newstr), colorsforbuttons.redcolor)
+
                 if managerslist[1] == '"ONLINE"':
-                    worksheet.format("D" + str(newstr), greencolor)
+                    worksheet.format("D" + str(newstr), colorsforbuttons.greencolor)
                 else:
-                    worksheet.format("D" + str(newstr), redcolor)
-                worksheet.update_cell(newstr, 5, managerslist[2])
+                    worksheet.format("D" + str(newstr), colorsforbuttons.redcolor)
                 if managerslist[2] == '"ONLINE"':
-                    worksheet.format("E" + str(newstr), greencolor)
+                    worksheet.format("E" + str(newstr), colorsforbuttons.greencolor)
                 else:
-                    worksheet.format("E" + str(newstr), redcolor)
-                worksheet.update_cell(newstr, 6, managerslist[3])
+                    worksheet.format("E" + str(newstr), colorsforbuttons.redcolor)
                 if managerslist[3] == '"ONLINE"':
-                    worksheet.format("F" + str(newstr), greencolor)
+                    worksheet.format("F" + str(newstr), colorsforbuttons.greencolor)
                 else:
-                    worksheet.format("F" + str(newstr), redcolor)
+                    worksheet.format("F" + str(newstr), colorsforbuttons.redcolor)
                 # Чтобы программа не крашилась из-за лимита количества запросов ставим sleep
                 datetime.time.sleep(60)
         except Exception as e:

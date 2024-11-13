@@ -60,7 +60,7 @@ def switcher(argument):
                 # Инициализация класса
                 x = class_call_center(argument)
                 # Запускаем поток с функцией изменения call-центра
-                t2 = Thread(target = x.changecallcenter())
+                t2 = Thread(target = x.changecallcenter)
                 t2.start()
                 # Вычисление следующего времени сканирования
                 nexthour = datetime.datetime.today().hour + 1
@@ -84,7 +84,7 @@ def switcher(argument):
                 # Инициализация класса
                 x = class_generation_stat_uploadphotos(argument)
                 # Запускаем поток с функцией подсчёта статистики загруженных фотографий
-                t3 = Thread(target=x.generationstatuploadphotos())
+                t3 = Thread(target=x.generationstatuploadphotos)
                 t3.start()
 
                 times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
