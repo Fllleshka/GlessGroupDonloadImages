@@ -41,6 +41,9 @@ class times:
     # Время для проверки 2.0 на сканирование фотографий
     timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
     #timetoScan_2_0 = today.time().strftime("%H:%M")
+    # Время для проверки прайс листа на обновление
+    timetoScanUpdatePrise = timetoCollectionOfInformation = (today + datetime.timedelta(minutes=10)).strftime("%H:%M")
+
 
 # Класс работы с фотографиями
 class class_photos(object):

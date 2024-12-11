@@ -95,6 +95,11 @@ def switcher(argument):
                 # Функция отправки сообщения в чат системному администратору
                 error_message.send_message()
 
+        # Время проверки прайс лист на обновление
+        case times.timetoScanUpdatePrise:
+            text = "Функция проверка прайс листа"
+            printer(times.timetoChangeCallCenter, text)
+
         # Время которое не выбрано для события
         case default:
             return print("Время сейчас:\t", default)
