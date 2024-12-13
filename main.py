@@ -99,6 +99,18 @@ def switcher(argument):
         case times.timetoScanUpdatePrise:
             text = "Функция проверка прайс листа"
             printer(times.timetoChangeCallCenter, text)
+            try:
+                # Инициализация класса
+                x = class_check_price(argument)
+                # Запускаем поток с функцией подсчёта статистики загруженных фотографий
+                x.start()
+                times.timetoScanUpdatePrise = datetime.time(23, 10).strftime("%H:%M")
+                print("\tСледующее время проверки прайс листа на обновление\t", times.timetoScanUpdatePrise)
+            except Exception as exception:
+                # Инициализация класса
+                error_message = class_send_erorr_message(argument, text, exception, botkey)
+                # Функция отправки сообщения в чат системному администратору
+                error_message.send_message()
 
         # Время которое не выбрано для события
         case default:

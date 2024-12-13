@@ -1,6 +1,7 @@
 import datetime
 import os
 import time
+from datetime import timedelta
 from time import sleep
 
 import telebot
@@ -42,8 +43,7 @@ class times:
     timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
     #timetoScan_2_0 = today.time().strftime("%H:%M")
     # Время для проверки прайс листа на обновление
-    timetoScanUpdatePrise = timetoCollectionOfInformation = (today + datetime.timedelta(minutes=10)).strftime("%H:%M")
-
+    timetoScanUpdatePrise = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
 
 # Класс работы с фотографиями
 class class_photos(object):
@@ -375,8 +375,8 @@ class class_photos(object):
         # Инициализируем попытку сбора данных с удалённого сервера
         try:
             # Открываем связь с удалённым сервером
-            datesftp = FTP(nameSite)
-            datesftp.login(ftpLogin, ftpPass)
+            datesftp = FTP(ftpdates.nameSite)
+            datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
             datesftp.set_pasv(False)
             # Получаем данные о том какие данные есть на удалённом сервере
             listalldirectors = datesftp.nlst()
@@ -407,8 +407,8 @@ class class_photos(object):
                 # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
                 for element in tqdm(self.massremote):
                     # Открываем связь с удалённым сервером
-                    datesftp = FTP(nameSite)
-                    datesftp.login(ftpLogin, ftpPass)
+                    datesftp = FTP(ftpdates.nameSite)
+                    datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
                     datesftp.set_pasv(False)
                     # Вычисляем номер папки
                     numberfolder = self.massremote.index(element) + 1
@@ -517,8 +517,8 @@ class class_photos(object):
         pathtofolder = mainpath + str(numberfolder) + "/"
 
         # Подключение к удалённому серверу по FTP
-        ftp = FTP(nameSite)
-        ftp.login(ftpLogin, ftpPass)
+        ftp = FTP(ftpdates.nameSite)
+        ftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
         ftp.set_pasv(False)
         ftppath = "/" + str(numberfolder) + "/"
         ftp.cwd(ftppath)
@@ -1155,3 +1155,31 @@ class class_send_erorr_message(object):
         # Отравляем сообщение на личный телефон системного администратора
         bot.send_message(1917167694, text=message)
         return message
+
+# Класс проверки файла прайслиста
+class class_check_price(object):
+
+    def __init__(self, argument):
+        self.time = argument
+
+    def start(self):
+        # Открываем связь с удалённым сервером
+        datesftp = FTP(ftpdates.nameSite)
+        datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
+        datesftp.set_pasv(False)
+        # Получаем данные о дате изменения файла на сервере
+        textcmd = "MDTM " + ftpdates.nameNewPrice
+        datefile = str(datesftp.sendcmd(textcmd))[4:-6]
+        # Сегодняшний день
+        today = datetime.datetime.today()
+        todaydate = today.strftime("%Y%m%d")
+        todaytime = today.strftime("%H")
+        # Сравниваем сегодняшнюю дату и дату обновления файла
+        result = True if datefile == todaydate else False
+        if int(todaytime) > 23 and result != True:
+            nameFunction = "class_check_price"
+            text = "Файл прайс листа не обновился"
+            # Инициализация класса
+            error_message = class_send_erorr_message(nameFunction, text, None, botkey)
+            # Функция отправки сообщения в чат системному администратору
+            error_message.send_message()
