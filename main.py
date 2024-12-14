@@ -105,6 +105,7 @@ def switcher(argument):
                 # Запускаем поток с функцией подсчёта статистики загруженных фотографий
                 x.start()
                 times.timetoScanUpdatePrise = datetime.time(23, 10).strftime("%H:%M")
+
                 print("\tСледующее время проверки прайс листа на обновление\t", times.timetoScanUpdatePrise)
             except Exception as exception:
                 # Инициализация класса
