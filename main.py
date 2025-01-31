@@ -32,6 +32,18 @@ def switcher(argument):
                 # Функция отправки сообщения в чат системному администратору
                 error_message.send_message()
 
+        # Время для углубленной синхронизаций папок
+        case times.timetoScan_2_0:
+            text = "Функция углубленного сканирования папки с фотографиями"
+            printer(times.timetoScan, text)
+            try:
+                pass
+            except Exception as exception:
+                # Инициализация класса
+                error_message = class_send_erorr_message(argument, text, exception, botkey)
+                # Функция отправки сообщения в чат системному администратору
+                error_message.send_message()
+
         # Время для сбора статистики call-центра
         case times.timetoCollectionOfInformation:
             text = "Время импорта статистики по звонкам"
@@ -55,7 +67,6 @@ def switcher(argument):
         case times.timetoChangeCallCenter:
             text = "Функция изменения call центра"
             printer(times.timetoChangeCallCenter, text)
-
             try:
                 # Инициализация класса
                 x = class_call_center(argument)
@@ -68,7 +79,6 @@ def switcher(argument):
                     nexthour = 0
                 times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
                 print("Следующее время для работы изменения Call-центра\t", times.timetoChangeCallCenter)
-
             except Exception as exception:
                 # Инициализация класса
                 error_message = class_send_erorr_message(argument, text, exception, botkey)
@@ -79,7 +89,6 @@ def switcher(argument):
         case times.timetoGenerationStatUploadPhotos:
             text = "Функция сбора статистики по загруженным фотографиям"
             printer(times.timetoChangeCallCenter, text)
-
             try:
                 # Инициализация класса
                 x = class_generation_stat_uploadphotos(argument)
@@ -105,7 +114,6 @@ def switcher(argument):
                 # Запускаем поток с функцией подсчёта статистики загруженных фотографий
                 x.start()
                 times.timetoScanUpdatePrise = datetime.time(23, 10).strftime("%H:%M")
-
                 print("\tСледующее время проверки прайс листа на обновление\t", times.timetoScanUpdatePrise)
             except Exception as exception:
                 # Инициализация класса

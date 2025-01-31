@@ -354,7 +354,7 @@ class class_photos(object):
         print(f"Локальных файлов: {len(self.masslocal[0])}\t{len(self.masslocal[1])}\t{len(self.masslocal[2])}\t{len(self.masslocal[3])}\t{len(self.masslocal[4])}")
 
         # Если время для продвинутого сканирования, запускаем
-        if self.date == times.timetoScan_2_0:
+        '''if self.date == times.timetoScan_2_0:
             print(f"Начинаем сканирование данных времени из локальных папок")
             # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
             for element in tqdm(self.masslocal):
@@ -367,7 +367,7 @@ class class_photos(object):
                     # Вычисляем размер изображения
                     datesize = os.stat(pathphoto).st_size
                     # Добавляем данные по результатам в массив
-                    self.masslocalsize[numberfolder - 1].append(datesize)
+                    self.masslocalsize[numberfolder - 1].append(datesize)'''
 
     # Функция сканирования удалённых папкок с фотографиями
     def scanfilesinremoteserver(self):
@@ -1176,7 +1176,7 @@ class class_check_price(object):
         todaytime = today.strftime("%H")
         # Сравниваем сегодняшнюю дату и дату обновления файла
         result = True if datefile == todaydate else False
-        if int(todaytime) > 23 and result != True:
+        if result != True:
             nameFunction = "class_check_price"
             text = "Файл прайс листа не обновился"
             # Инициализация класса
