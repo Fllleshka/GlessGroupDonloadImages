@@ -14,7 +14,7 @@ def offcallcenter():
     today = datetime.datetime.today()
     todayday = int(today.strftime("%w"))
     if todayday == 3:
-        for element in numbermanagers:
+        for element in allsotr.numbermanagers:
             urlforapi = urlapi + str(element) + '/agent'
             requests.put(urlforapi, params = paramoffline, headers=headers)
     else:

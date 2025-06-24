@@ -27,8 +27,8 @@ class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
     # Первоначальное время сканирования
-    timetoScan = today.time().strftime("%H:%M")
-    #timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
+    #timetoScan = today.time().strftime("%H:%M")
+    timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
     # Время для работы изменения Call-центра
     timetoChangeCallCenter = (today + datetime.timedelta(minutes=4)).strftime("%H:%M")
     # Время для сбора статистики по звонкам
@@ -38,7 +38,8 @@ class times:
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
     # Время сбора статистики по месячной работе прикрепления фотографий к карточкам товаров
     #timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
-    timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=7)).strftime("%H:%M")
+    #timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=7)).strftime("%H:%M")
+    timetoGenerationStatUploadPhotos = today.time().strftime("%H:%M")
     # Время для проверки 2.0 на сканирование фотографий
     timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
     #timetoScan_2_0 = today.time().strftime("%H:%M")
@@ -377,7 +378,7 @@ class class_photos(object):
             # Открываем связь с удалённым сервером
             datesftp = FTP(ftpdates.nameSite)
             datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-            datesftp.set_pasv(False)
+            #datesftp.set_pasv(False)
             # Получаем данные о том какие данные есть на удалённом сервере
             listalldirectors = datesftp.nlst()
             for element in tqdm(listalldirectors):
@@ -519,7 +520,6 @@ class class_photos(object):
         # Подключение к удалённому серверу по FTP
         ftp = FTP(ftpdates.nameSite)
         ftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-        ftp.set_pasv(False)
         ftppath = "/" + str(numberfolder) + "/"
         ftp.cwd(ftppath)
 
@@ -540,7 +540,12 @@ class class_photos(object):
 class class_call_center(object):
 
     def __init__(self, argument):
+        # Приём веремени в класс
         self.date = argument
+        # Приём данных по сотрудникам
+        self.sotrud = allsotr
+        # Приём данных по файлам excel
+        self.datesexcel = datesforexcelfiles
 
     # Функция записи об обновлении файла Call центра
     def createnewarrowincallcenter2(self):
@@ -578,9 +583,12 @@ class class_call_center(object):
     # Функция копирования данный в файл для работы
     def checkupdatedatesexcel(self):
         # Вычисляем время последнего изменения основного документа
-        file1 = openpyxl.load_workbook(mainfile).properties.modified
+        #file1 = openpyxl.load_workbook(mainfile).properties.modified
+        file1 = openpyxl.load_workbook(datesforexcelfiles.pathmainfile).properties.modified
         # Вычисляем дату последнего изменения рабочего документа
-        file2 = openpyxl.load_workbook(pathfile).properties.modified
+        #file2 = openpyxl.load_workbook(pathfile).properties.modified
+        file2 = openpyxl.load_workbook(datesforexcelfiles.pathfile).properties.modified
+
         # Вычисляем разницу времён
         diff_times = file1 - file2
         # Устанавливаем время для синхронизации фаилов
@@ -589,7 +597,7 @@ class class_call_center(object):
         if deltatime < diff_times:
             print("\t\tСинхронизация требуется")
             # Выполняем копирование
-            shutil.copy2(mainfile, pathfile, follow_symlinks=True)
+            shutil.copy2(datesforexcelfiles.pathmainfile, datesforexcelfiles.pathfile, follow_symlinks=True)
             print("\t\tСтатус операции изменения фаила: [Фаил обновлён]")
             # Логгирование обновления фаила
             self.createnewarrowincallcenter2()
@@ -666,13 +674,15 @@ class class_call_center(object):
 
         # Удаляем ненужные данные
         for element in dates:
-            if element == massmanagers[0]:
+            #if element == massmanagers[0]:
+            if element == allsotr.massmanagers_short[0]:
                 delelements = dates.index(element)
         del dates[0:delelements]
 
         # Разбиваем массив для конкретизации графика каждого менеджера
         managerlists = []
-        lenmanagers = len(massmanagers) - 1
+        #lenmanagers = len(massmanagers) - 1
+        lenmanagers = len(allsotr.massmanagers_short) - 1
         for i in range(0, lenmanagers):
             managerlist = []
             index = 0
@@ -711,7 +721,8 @@ class class_call_center(object):
             # Изменяем статусы менеджеров call центра
             for element in managerlists:
                 if element[todayday] == "В" or element[todayday] == "O" or element[todayday] == "О" or element[todayday] == "Х":
-                    numbermanager = numbermanagers[massmanagers.index(element[0])]
+                    #numbermanager = numbermanagers[massmanagers.index(element[0])]
+                    numbermanager =  allsotr.numbermanagers[allsotr.massmanagers_short.index(element[0])]
                     print("\t\tНеобходимо деактивировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
                           numbermanager,
                           "'")
@@ -724,7 +735,8 @@ class class_call_center(object):
                         statusget = requests.get(urlforapi, headers=headers).text
                         print("\tСтатус менеджера: ", element[0], " = ", statusget)
                 else:
-                    numbermanager = numbermanagers[massmanagers.index(element[0])]
+                    #numbermanager = numbermanagers[massmanagers.index(element[0])]
+                    numbermanager = allsotr.numbermanagers[allsotr.massmanagers_short.index(element[0])]
                     print("\t\tНеобходимо активировать телефон: ", element[0], "\t[", element[todayday], "]", "'",
                           numbermanager,
                           "'")
@@ -770,7 +782,8 @@ class class_call_center(object):
             # Выясняем данные кто работает
             managerslist = []
             # Выясняем статусы менеджеров
-            for element in numbermanagers:
+            #for element in numbermanagers:
+            for element in allsotr.numbermanagers:
                 urlforapi = urlapi + element + '/agent'
                 status = requests.get(urlforapi, headers=headers).text
                 managerslist.append(status)
@@ -824,7 +837,7 @@ class class_call_center(object):
         # Функция проверки файла на актуальность
         self.checkupdatedatesexcel()
         # Достаём данные из файла
-        datesnowmonth = self.importdatesformexcel(pathfile, password)
+        datesnowmonth = self.importdatesformexcel(datesforexcelfiles.pathfile, datesforexcelfiles.password)
         # Выбираем данные для работы с ними
         massive = self.chosedates(datesnowmonth)
         # Активируем телефоны менеджеров
@@ -904,7 +917,8 @@ class class_collecion_of_information(object):
 
         try:
             # Пробегаемся по списку менеджеров
-            for element in numbermanagers:
+            #for element in numbermanagers:
+            for element in allsotr.numbermanagers:
                 # Формируем данные для запроса
                 paramsinfo['userId'] = element
                 paramsinfo['dateTo'] = self.dateAndTimeEnd
@@ -1031,16 +1045,20 @@ class class_collecion_of_information(object):
         # Пробегаемся по всем звонкам и сортируем звонки
         for element in self.calls:
             # Считаем статистику для первого менеджера
-            if element.name_manager == fullmassmanagers[0]:
+            #if element.name_manager == fullmassmanagers[0]:
+            if element.name_manager == allsotr.fullmassmanagers[0]:
                 self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 0, element)
             # Считаем статистику для второго менеджера
-            elif element.name_manager == fullmassmanagers[1]:
+            #elif element.name_manager == fullmassmanagers[1]:
+            elif element.name_manager == allsotr.fullmassmanagers[1]:
                 self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 1, element)
             # Считаем статистику для третьего менеджера
-            elif element.name_manager == fullmassmanagers[2]:
+            #elif element.name_manager == fullmassmanagers[2]:
+            elif element.name_manager == allsotr.fullmassmanagers[2]:
                 self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 2, element)
             # Считаем статистику для четвёртого менеджера
-            elif element.name_manager == fullmassmanagers[3]:
+            #elif element.name_manager == fullmassmanagers[3]:
+            elif element.name_manager == allsotr.fullmassmanagers[3]:
                 self.addinfoinmass(self.massmissescals, self.massinboundcalls, self.masssumtimes, 3, element)
             else:
                 print("Cтатистика для Неизвестного лица(")
@@ -1088,45 +1106,66 @@ class class_generation_stat_uploadphotos(object):
             today = datetime.datetime.today()
             todaytime = today.strftime("%d")
             print(f"\tДата сейчас: {todaytime}")
-            # Проверяем если начало месяца (01 число)
-            if todaytime == "01":
-                # Вычисляем месяц за который сохраняем статистику
-                statmonthandyear = (datetime.datetime.today() - datetime.timedelta(days=1)).strftime('%B %Y')
+
+            # Вычисляем день недели
+            day_of_week = today.weekday()
+            print(f"День недели: {day_of_week}")
+
+            # Если сегодня суббота
+            if day_of_week == 5:
+                # Вычисляем период за который сохраняем статистику
+                startdate = (datetime.datetime.today() - datetime.timedelta(days=7)).strftime("%d.%m.%Y")
+                enddate = datetime.datetime.today().strftime("%d.%m.%Y")
+                resultdates = str(startdate) + " : " + str(enddate)
+                print(f"{startdate} - {enddate} : {resultdates}")
+
                 # Подключаемся к сервисному аккаунту
                 gc = gspread.service_account(CREDENTIALS_FILE)
                 # Подключаемся к таблице по ключу таблицы
                 table = gc.open_by_key(sheetkey)
                 # Открываем нужный лист
                 worksheet = table.worksheet("LogsPhotos")
-                # Получаем номер строки для записи в стоблце L
+                # Получаем номер строки для записи в столбце L
                 newstr = len(worksheet.col_values(12)) + 1
                 # Получаем данные из столбца H
                 massvalues = worksheet.get_values('H2:H6')
                 sumphotos = 0
+
                 # Преобразовываем массив
                 for element in massvalues:
                     self.massvalues.append(int(element[0]))
                     sumphotos += int(element[0])
+
+                print(massvalues)
+                print(sumphotos)
+
                 # Запись данных в табличку
                 for element in range(0, 7):
                     column = element + 12
+                    print(column)
                     match column:
                         case 12:
-                            worksheet.update_cell(newstr, column, statmonthandyear)
+                            print(f"Update 12 | {newstr} | {column} | {resultdates}")
+                            worksheet.update_cell(newstr, column, resultdates)
                             worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
                         case 18:
+                            print(f"Update 18 | {newstr} | {column} | {sumphotos}")
                             worksheet.update_cell(newstr, column, sumphotos)
                             worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
                         case dafault:
+                            print(f"Update default | {newstr} | {column} | {self.massvalues[element - 1]}")
                             worksheet.update_cell(newstr, column, self.massvalues[element - 1])
                             worksheet.format(self.masscolumns[element] + str(newstr), colorsforworkers.colornone)
                 # Обнуляем значения, которые подсчитываются онлайн
                 for element in range(2, 7):
                     worksheet.update_cell(element, 8, 0)
-
                 # Записываем дату с коротой считаются фотографии
-                nulldate = today.strftime("%d %B %Y")
+                nulldate = today.strftime("%d %m %Y")
                 worksheet.update_cell(2, 9, nulldate)
+                text = f"\t Подсчёт загруженных фотографий навершён"
+                print(text)
+                return text
+            # Иначе ничего не делаем
             else:
                 text = f"\tВремя для обнуления ещё не пришло."
                 print(text)
