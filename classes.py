@@ -26,25 +26,58 @@ class times:
     # Время сейчас
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    # Первоначальное время сканирования
+    # Первоначальное время сканирования папок с фотографиями
     #timetoScan = today.time().strftime("%H:%M")
     timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
     # Время для работы изменения Call-центра
-    timetoChangeCallCenter = (today + datetime.timedelta(minutes=4)).strftime("%H:%M")
+    timetoChangeCallCenter = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
     # Время для сбора статистики по звонкам
     #timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
-    timetoCollectionOfInformation = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
+    timetoCollectionOfInformation = (today + datetime.timedelta(minutes=3)).strftime("%H:%M")
     # Время собрания (пока не используется)
     #timetoOffCallCenterOnMeeting = datetime.time(16, 0).strftime("%H:%M")
-    # Время сбора статистики по месячной работе прикрепления фотографий к карточкам товаров
+    # Время сбора статистики по недельной работе прикрепления фотографий к карточкам товаров
     #timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
-    #timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=7)).strftime("%H:%M")
-    timetoGenerationStatUploadPhotos = today.time().strftime("%H:%M")
+    timetoGenerationStatUploadPhotos = (today + datetime.timedelta(minutes=4)).strftime("%H:%M")
+    #timetoGenerationStatUploadPhotos = today.time().strftime("%H:%M")
     # Время для проверки 2.0 на сканирование фотографий
     timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
     #timetoScan_2_0 = today.time().strftime("%H:%M")
-    # Время для проверки прайс листа на обновление
-    timetoScanUpdatePrise = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
+    # Время для проверки файлов на обновления
+    timetoScanUpdateFiles = today.time().strftime("%H:%M")
+    #timetoScanUpdateFiles = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
+
+    def nexttime(self, argument):
+        match(argument):
+
+            case "TimeToScan":
+                nexthour = datetime.datetime.today().hour + 1
+                if nexthour == 24:
+                    nexthour = 0
+                self.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
+                return self.timetoScan
+
+            case "timetoCollectionOfInformation":
+                times.timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
+                return times.timetoCollectionOfInformation
+
+            case "timetoChangeCallCenter":
+                nexthour = datetime.datetime.today().hour + 1
+                if nexthour == 24:
+                    nexthour = 0
+                times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
+                return times.timetoChangeCallCenter
+
+            case "timetoGenerationStatUploadPhotos":
+                times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
+                return times.timetoGenerationStatUploadPhotos
+
+            case "timetoScanUpdateFiles":
+                times.timetoScanUpdateFiles = datetime.time(23, 10).strftime("%H:%M")
+                return times.timetoScanUpdateFiles
+
+            case _:
+                pass
 
 # Класс работы с фотографиями
 class class_photos(object):
@@ -70,23 +103,40 @@ class class_photos(object):
 
         # Необходима конструкция, которая будет обрабатывать недоступность папок как локальных, так и удалённых.
         # Вызов функции сканирования локальных папок
-        thr1 = threading.Thread(target = self.scanfolderforimages)
-        thr1.start()
-
+        self.scanfolderforimages()
+        #thr1 = threading.Thread(target = self.scanfolderforimages)
+        #thr1.start()
+        self.scanfilesinremoteserver()
         # Вызов функции сканирования удалённых папок
-        thr2 = threading.Thread(target = self.scanfilesinremoteserver)
-        thr2.start()
+        #thr2 = threading.Thread(target = self.scanfilesinremoteserver)
+        #thr2.start()
 
         # Ожидание окончания потоков
-        thr1.join(self.timetowaitingfunction)
-        thr2.join(self.timetowaitingfunction)
+        #thr1.join(self.timetowaitingfunction)
+        #thr2.join(self.timetowaitingfunction)
 
         # Запуск таймера по ограничению работы потоков
-        thr3 = threading.Thread(target = self.killingthreads, args=(timetowaitingfunction, thr1, thr2))
-        thr3.start()
+        #thr3 = threading.Thread(target = self.killingthreads, args=(timetowaitingfunction, thr1, thr2))
+        #thr3.start()
 
         # Вызов функции выявления различия файлов на локальном и удалённом сервере
         self.comparisonlists()
+
+    # Функция подгонки фотографий под единый формат
+    def changefromat(self, folder):
+        print("Функция подгонки фотографий под единый формат папки", folder)
+        print("==========================")
+        #print(folder)
+        #print(len(os.listdir(folder)))
+        #print(os.listdir(folder))
+        for element in tqdm(os.listdir(folder)):
+            oldname = folder + element
+            newname = folder + element.lower()
+            #print(f"Название элемента [{oldname}]\t[{newname}]")
+            #print(oldname.islower())
+            if os.path.exists(oldname) == True and oldname.islower():
+                os.rename(oldname, newname)
+        print("==========================")
 
     # Функция ограничения потоков по времени
     def killingthreads(self, timelimit, thr1, thr2):
@@ -272,11 +322,11 @@ class class_photos(object):
                     except PermissionError:
                         # Оператор заглушка равноценная отсутствию операции
                         pass
-                # Если же это не фаил Thumbs.db
+                # Если же это не файл Thumbs.db
                 else:
                     # Выясняем путь к этому фаилу
                     pathfolder = mainpathanalysis + "/" + element
-                    # Получаем данные о фаилах по этому пути
+                    # Получаем данные о файлах по этому пути
                     nextlist = os.listdir(pathfolder)
                     # Если папка пуста, то пишем о пустой папке
                     if nextlist == []:
@@ -299,7 +349,7 @@ class class_photos(object):
                                     massnewphotos = self.statisticsphotos(pathimage, massnewphotos)
                                     # Уменьшение веса и подгонка фотографии
                                     self.convertimage(pathimage)
-                                    # Переименоваие и загрузка фотографии
+                                    # Переименование и загрузка фотографии
                                     self.renameanduploadimage(pathimage, numberfolder)
                                     # Увеличиваем счётчик
                                     numberfolder = numberfolder + 1
@@ -330,29 +380,47 @@ class class_photos(object):
     def scanfolderforimages(self):
         print(f"Начинаем сканирование данных из локальных папок")
         # Пробегаемся по массиву и заполняем данные по называнию файлов
-        for element in tqdm(os.listdir(mainpath)):
+        for element in os.listdir(mainpath):
             # Формируем путь к папкам
-            pathfolder = mainpath + "/" + element
+            pathfolder = mainpath + element + "/"
             match element:
                 case "1":
+                    #self.changefromat(pathfolder)
                     self.masslocal[0] = os.listdir(pathfolder)
-                    self.masslocal[0].remove('Thumbs.db')
+                    if 'thumbs.db' in self.masslocal[0]:
+                        self.masslocal[0].remove('thumbs.db')
                 case "2":
+                    #self.changefromat(pathfolder)
                     self.masslocal[1] = os.listdir(pathfolder)
-                    self.masslocal[1].remove('Thumbs.db')
+                    if 'thumbs.db' in self.masslocal[1]:
+                        self.masslocal[1].remove('thumbs.db')
                 case "3":
+                    #self.changefromat(pathfolder)
                     self.masslocal[2] = os.listdir(pathfolder)
-                    self.masslocal[2].remove('Thumbs.db')
+                    if 'thumbs.db' in self.masslocal[2]:
+                        self.masslocal[2].remove('thumbs.db')
                 case "4":
+                    #self.changefromat(pathfolder)
                     self.masslocal[3] = os.listdir(pathfolder)
-                    self.masslocal[3].remove('Thumbs.db')
+                    if 'thumbs.db' in self.masslocal[3]:
+                        self.masslocal[3].remove('thumbs.db')
                 case "5":
+                    #self.changefromat(pathfolder)
                     self.masslocal[4] = os.listdir(pathfolder)
-                    self.masslocal[4].remove('Thumbs.db')
+                    if 'thumbs.db' in self.masslocal[4]:
+                        self.masslocal[4].remove('thumbs.db')
+                    elif 'Thumbs.db' in self.masslocal[4]:
+                        self.masslocal[4].remove('Thumbs.db')
                 case _:
                     continue
+        print(f"\tЛокальных файлов: {len(self.masslocal[0])}\t{len(self.masslocal[1])}\t{len(self.masslocal[2])}\t{len(self.masslocal[3])}\t{len(self.masslocal[4])}")
 
-        print(f"Локальных файлов: {len(self.masslocal[0])}\t{len(self.masslocal[1])}\t{len(self.masslocal[2])}\t{len(self.masslocal[3])}\t{len(self.masslocal[4])}")
+        for element in os.listdir(mainpath):
+            for elem in element:
+                if elem == "'thumbs.db'":
+                    print("\t\tЭлемент 'thumbs.db' найден!")
+
+        print(f"Заканчиваем сканирование данных из локальных папок")
 
         # Если время для продвинутого сканирования, запускаем
         '''if self.date == times.timetoScan_2_0:
@@ -374,57 +442,60 @@ class class_photos(object):
     def scanfilesinremoteserver(self):
         print(f"Начинаем сканирование данных из удалённых папок")
         # Инициализируем попытку сбора данных с удалённого сервера
-        try:
-            # Открываем связь с удалённым сервером
-            datesftp = FTP(ftpdates.nameSite)
-            datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-            #datesftp.set_pasv(False)
-            # Получаем данные о том какие данные есть на удалённом сервере
-            listalldirectors = datesftp.nlst()
-            for element in tqdm(listalldirectors):
-                match element:
-                    # Первая папка для синхронизации
-                    case "1":
-                        self.massremote[0] = self.importatesfromftp(datesftp, element)
-                    # Вторая папка для синхронизации
-                    case "2":
-                        self.massremote[1] = self.importatesfromftp(datesftp, element)
-                    # Третья папка для синхронизации
-                    case "3":
-                        self.massremote[2] = self.importatesfromftp(datesftp, element)
-                    # Четвёртая папка для синхронизации
-                    case "4":
-                        self.massremote[3] = self.importatesfromftp(datesftp, element)
-                    # Пятая папка для синхронизации
-                    case "5":
-                        self.massremote[4] = self.importatesfromftp(datesftp, element)
-                    case _:
-                        continue
-            # Закрываем соединение с удалённым сервером
-            datesftp.close()
-            print(f"Удалённых файлов: {len(self.massremote[0])}\t{len(self.massremote[1])}\t{len(self.massremote[2])}\t{len(self.massremote[3])}\t{len(self.massremote[4])}")
-            # Если время для продвинутого сканирования, запускаем
-            if self.date == times.timetoScan_2_0:
-                # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
-                for element in tqdm(self.massremote):
-                    # Открываем связь с удалённым сервером
-                    datesftp = FTP(ftpdates.nameSite)
-                    datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-                    datesftp.set_pasv(False)
-                    # Вычисляем номер папки
-                    numberfolder = self.massremote.index(element) + 1
-                    # Запускам цикл по фотографиям, которые находятся в папках
-                    for elem in element:
-                        # Формируем путь к элементу
-                        remotepathphoto = "/" + str(numberfolder) + "/" + str(elem)
-                        self.importremotedatesfromftp(datesftp, remotepathphoto, numberfolder)
-                    # Закрываем соединение с удалённым сервером
-                    datesftp.close()
+        for element in os.listdir(server2path):
+            # Формируем путь к папкам
+            pathfolder = server2path + "/" + element
+            #print(element, "\t\t", pathfolder)
+            match element:
+                # Первая папка для синхронизации
+                case "1":
+                    self.massremote[0] = os.listdir(pathfolder)
+                    #self.massremote[0].remove('Thumbs.db')
+                # Вторая папка для синхронизации
+                case "2":
+                    self.massremote[1] = os.listdir(pathfolder)
+                    #self.massremote[1].remove('Thumbs.db')
+                # Третья папка для синхронизации
+                case "3":
+                    self.massremote[2] = os.listdir(pathfolder)
+                    #self.massremote[2].remove('Thumbs.db')
+                # Четвёртая папка для синхронизации
+                case "4":
+                    self.massremote[3] = os.listdir(pathfolder)
+                    #self.massremote[3].remove('Thumbs.db')
+                # Пятая папка для синхронизации
+                case "5":
+                    self.massremote[4] = os.listdir(pathfolder)
+                    #self.massremote[4].remove('Thumbs.db')
+                case _:
+                    continue
 
-        except Exception as e:
-            print("Синхронизация папок не удалась. Попробуем в следующий раз.")
-            print(f"\t{e}")
-            return
+        print(f"Удалённых файлов: {len(self.massremote[0])}\t{len(self.massremote[1])}\t{len(self.massremote[2])}\t{len(self.massremote[3])}\t{len(self.massremote[4])}")
+
+        for element in os.listdir(server2path):
+            for elem in element:
+                if elem == "'thumbs.db'":
+                    print("\t\tЭлемент 'thumbs.db' найден!")
+
+        print(f"Заканчиваем сканирование данных из удалённых папок")
+        # Если время для продвинутого сканирования, запускаем
+        '''if self.date == times.timetoScan_2_0:
+            # Пробегаемся по сформированному массиву, чтобы извлечь данные времени создания
+            for element in tqdm(self.massremote):
+                # Открываем связь с удалённым сервером
+                datesftp = FTP(ftpdates.nameSite)
+                datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
+                datesftp.set_pasv(False)
+                # Вычисляем номер папки
+                numberfolder = self.massremote.index(element) + 1
+                # Запускам цикл по фотографиям, которые находятся в папках
+                for elem in element:
+                    # Формируем путь к элементу
+                    remotepathphoto = "/" + str(numberfolder) + "/" + str(elem)
+                    self.importremotedatesfromftp(datesftp, remotepathphoto, numberfolder)
+                # Закрываем соединение с удалённым сервером
+                datesftp.close()
+        '''
 
     # Функция импорта данных
     def importatesfromftp(self, datesftp, element):
@@ -449,8 +520,44 @@ class class_photos(object):
 
     # Функция различия локальной у удалённой папки
     def comparisonlists(self):
+        print(f"Начинаем выборку разницы локальных(215) и удалённых(35) папок")
+        for element in range(0, 5):
+            result = list(set(self.masslocal[element]) - set(self.massremote[element]))
+            #print("Разница папки\t", element, "\t", len(result), "\t", result)
+            if result == []:
+                match element:
+                    case 0:
+                        print("Первые\t\tпапки синхронизированы!")
+                    case 1:
+                        print("Вторые\t\tпапки синхронизированы!")
+                    case 2:
+                        print("Третьи\t\tпапки синхронизированы!")
+                    case 3:
+                        print("Четвёртые\tпапки синхронизированы!")
+                    case 4:
+                        print("Пятые\t\tпапки синхронизированы!")
+            else:
+                match element:
+                    case 0:
+                        print("Разность первых папок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 1:
+                        print("Разность вторых папок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 2:
+                        print("Разность третьих папок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 3:
+                        print("Разность четвёртых папок: ", result)
+                        self.uploadfiles(element + 1, result)
+                    case 4:
+                        print("Разность пятых папок: ", result)
+                        self.uploadfiles(element + 1, result)
+
+        print(f"Заканчиваем выборку разницы локальных(215) и удалённых(35) папок")
+
         # Если время для продвинутого сканирования, запускаем
-        if self.date == times.timetoScan_2_0:
+        '''if self.date == times.timetoScan_2_0:
             print(f"Index\tElement\t\t\tNameLocal\tLocalSize\tRemoteName\t\tRemoteDate")
             for element in self.masslocal:
                 print("===============================")
@@ -479,62 +586,66 @@ class class_photos(object):
                 else:
                     mass = list(set(self.masslocal[i]) - set(self.massremote[i]))
                     print(f"Local-Remote {i} :\t\t{difference}\t\t{mass}")
-        else:
-            for element in range(0, 5):
-                result = list(set(self.masslocal[element]) - set(self.massremote[element]))
-                if result == []:
-                    match element:
-                        case 0:
-                            print("Первые\t\tпапки синхронизированны!")
-                        case 1:
-                            print("Вторые\t\tпапки синхронизированны!")
-                        case 2:
-                            print("Третьи\t\tпапки синхронизированны!")
-                        case 3:
-                            print("Четвёртые\tпапки синхронизированны!")
-                        case 4:
-                            print("Пятые\t\tпапки синхронизированны!")
-                else:
-                    match element:
-                        case 0:
-                            print("Разность первых папкок: ", result)
-                            self.uploadfiles(element + 1, result)
-                        case 1:
-                            print("Разность вторых папкок: ", result)
-                            self.uploadfiles(element + 1, result)
-                        case 2:
-                            print("Разность третьих папкок: ", result)
-                            self.uploadfiles(element + 1, result)
-                        case 3:
-                            print("Разность четвёртых папкок: ", result)
-                            self.uploadfiles(element + 1, result)
-                        case 4:
-                            print("Разность пятых папкок: ", result)
-                            self.uploadfiles(element + 1, result)
+                    '''
 
     # Функция загрузки фотографий на сервер
     def uploadfiles(self, numberfolder, result):
-        # Путь к элементу
+        print("Функция загрузки фотографий на сервер2")
+        print("=====================")
+        #print(numberfolder)
+        #print(result)
+        #print(len(result))
+        for element in tqdm(result):
+            if element != "thumbs.db":
+                fistfilepath = mainpath + str(numberfolder) + "/" + element
+                #print("\t\tОткуда:", fistfilepath)
+                secondfilepath = server2path + "/" + str(numberfolder) + "/" + element.lower()
+                #print("\t\tКуда:", secondfilepath)
+                try:
+                    #print("Нужно скопировать файл: ", element)
+                    shutil.copyfile(fistfilepath, secondfilepath)
+                except Exception:
+                    print(f"Не удалить скопировать файл: {Exception}")
+        print("=====================")
+        '''
+        # Путь к локальным папкам
         pathtofolder = mainpath + str(numberfolder) + "/"
 
         # Подключение к удалённому серверу по FTP
-        ftp = FTP(ftpdates.nameSite)
-        ftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-        ftppath = "/" + str(numberfolder) + "/"
-        ftp.cwd(ftppath)
+        #ftp = FTP(ftpdates.nameSite)
+        #ftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
+        #ftppath = "/" + str(numberfolder) + "/"
+        #ftp.cwd(ftppath)
 
         # Перебираем элементы
         for element in tqdm(result):
             if element == "Thumbs.db":
                 continue
             else:
-                path = pathtofolder + element
+                path = server2path + element + "/"
+                print(path)
+                #filesfolder = os.listdir(path)
+                print(element, "необходимо скопировать по пути: ", server2path, "\t\t", result)
+                print("=====================")
+                #for element in tqdm.tqdm(filesfolder):
+                #    print("\t\t\t", element)
+                    #if element != "Thumbs.db":
+                    #    fistfilepath = self.variables.pathfolderlocal + str(folder) + "/" + element
+                    #    # print("Откуда:", fistfilepath)
+                    #    secondfilepath = self.variables.pathsitefolderlocal + str(folder) + "/" + element.lower()
+                    #    # print("Куда:", secondfilepath)
+                    #    shutil.copyfile(fistfilepath, secondfilepath)
+                print("=====================")
+
+
+                time.sleep(1)
                 # file = open(element, "rb")
-                with open(path, "rb") as file:
-                    ftp.storbinary("STOR " + element, file)
-                file.close()
+                #with open(path, "rb") as file:
+                #    ftp.storbinary("STOR " + element, file)
+                #file.close()
         print("Синхронизация папки ", numberfolder, " завершена.")
-        ftp.quit()
+        #ftp.quit()
+        '''
 
 # Класс работы с Call центре
 class class_call_center(object):
@@ -1195,30 +1306,58 @@ class class_send_erorr_message(object):
         bot.send_message(1917167694, text=message)
         return message
 
-# Класс проверки файла прайслиста
-class class_check_price(object):
+# Класс проверки файлов на актуальность
+class class_checks(object):
 
     def __init__(self, argument):
         self.time = argument
 
     def start(self):
-        # Открываем связь с удалённым сервером
-        datesftp = FTP(ftpdates.nameSite)
-        datesftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-        datesftp.set_pasv(False)
-        # Получаем данные о дате изменения файла на сервере
-        textcmd = "MDTM " + ftpdates.nameNewPrice
-        datefile = str(datesftp.sendcmd(textcmd))[4:-6]
-        # Сегодняшний день
+        # Проверяем когда был изменён файл базы данных
+        pathtodatabase = '//SPEED-DEMON-II/wwwroot/files/database.db'
+        self.decisionmaking(pathtodatabase)
+        # Проверяем когда был изменён файл Дром
+        pathtodrom = '//SPEED-DEMON-II/wwwroot/files/dromoutputinstock.xml'
+        self.decisionmaking(pathtodrom)
+        # Проверяем когда был изменён файл Авито
+        pathtoavito = '//SPEED-DEMON-II/wwwroot/files/avitooutputinstock.xml'
+        self.decisionmaking(pathtoavito)
+        # Проверяем когда был изменён файл Авито
+        doublegis = '//SPEED-DEMON-II/wwwroot/files/2gisoutputinstock.yml'
+        self.decisionmaking(doublegis)
+
+        # Функция выяснения последней модификации файла
+
+    # Функция получения последней модификации файла
+    def getlastmodifieddate(self, file_path):
+            try:
+                timestamp = os.stat(file_path).st_mtime
+                return datetime.datetime.fromtimestamp(timestamp)
+            except FileNotFoundError:
+                return None
+
+    # Функция отправки сообщения и принятия решения
+    def decisionmaking(self, pathfile):
+        # Получаем сегодняшнюю дату
         today = datetime.datetime.today()
-        todaydate = today.strftime("%Y%m%d")
-        todaytime = today.strftime("%H")
-        # Сравниваем сегодняшнюю дату и дату обновления файла
-        result = True if datefile == todaydate else False
-        if result != True:
-            nameFunction = "class_check_price"
-            text = "Файл прайс листа не обновился"
+        # Максимальное время без обновления
+        oneday = datetime.timedelta(days=1)
+        # Получаем дату последнего изменения файла
+        lasttimeupdate = self.getlastmodifieddate(pathfile)
+        print("Файл: ", pathfile)
+        print("\tДата изменения файла : ", lasttimeupdate.strftime("%d.%m.%Y %H:%M:%S"))
+        difference = today - lasttimeupdate
+        print("\tВремя с последнего обновления: ", difference)
+        if difference > oneday:
+            print("\tНеобходимо обновить файл.")
+            text = "\n\nФайл: \n" + pathfile + "\nНе обновился!\n" + str(difference) + "\n"
+            exception = "NoException"
             # Инициализация класса
-            error_message = class_send_erorr_message(nameFunction, text, None, botkey)
+            error_message = class_send_erorr_message(today.strftime("%H:%M"),
+                                                     text,
+                                                     exception,
+                                                     botkey)
             # Функция отправки сообщения в чат системному администратору
             error_message.send_message()
+        else:
+            print("\tОбновление файла не требуется")

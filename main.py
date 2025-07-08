@@ -17,15 +17,15 @@ def switcher(argument):
                 t0.start()
 
                 # Вычисление следующего времени изменения Call центра
-                if argument == times.timetoScan_2_0:
-                    nexthour2 = datetime.datetime.today().hour + 3
-                    times.timetoChangeCallCenter = datetime.time(nexthour2, 0).strftime("%H:%M")
+                newtime = times()
+                times.timetoScan = newtime.nexttime("TimeToScan")
 
-                nexthour = datetime.datetime.today().hour + 1
-                if nexthour == 24:
-                    nexthour = 0
-                times.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
                 print("Следующее время синхронизации фотографий:\t", times.timetoScan)
+
+                '''if argument == times.timetoScan_2_0:
+                    nexthour2 = datetime.datetime.today().hour + 3
+                    times.timetoChangeCallCenter = datetime.time(nexthour2, 0).strftime("%H:%M")'''
+
             except Exception as exception:
                 # Инициализация класса
                 error_message = class_send_erorr_message(argument, text, exception, botkey)
@@ -36,6 +36,7 @@ def switcher(argument):
         case times.timetoScan_2_0:
             text = "Функция углубленного сканирования папки с фотографиями"
             printer(times.timetoScan, text)
+
             try:
                 pass
             except Exception as exception:
@@ -55,8 +56,12 @@ def switcher(argument):
                 # Запускаем поток с функцией сбора статистики call-центра
                 t1 = Thread(target=x.collectionofinformation)
                 t1.start()
-                times.timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
+
+                # Вычисление следующего времени для сбора статистики call-центра
+                newtime = times()
+                times.timetoCollectionOfInformation = newtime.nexttime("timetoCollectionOfInformation")
                 print("Следующее время для сбора статистики по звонкам\t", times.timetoCollectionOfInformation)
+
             except Exception as exception:
                 # Инициализация класса
                 error_message = class_send_erorr_message(argument, text, exception, botkey)
@@ -73,12 +78,11 @@ def switcher(argument):
                 # Запускаем поток с функцией изменения call-центра
                 t2 = Thread(target = x.changecallcenter)
                 t2.start()
-                # Вычисление следующего времени сканирования
-                nexthour = datetime.datetime.today().hour + 1
-                if nexthour == 24:
-                    nexthour = 0
-                times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
-                print("Следующее время для работы изменения Call-центра\t", times.timetoChangeCallCenter)
+                # Вычисление следующего времени изменения Call центра
+                newtime = times()
+                times.timetoCollectionOfInformation = newtime.nexttime("timetoChangeCallCenter")
+                print("Следующее время для сбора статистики по звонкам\t", times.timetoChangeCallCenter)
+
             except Exception as exception:
                 # Инициализация класса
                 error_message = class_send_erorr_message(argument, text, exception, botkey)
@@ -96,25 +100,31 @@ def switcher(argument):
                 t3 = Thread(target=x.generationstatuploadphotos)
                 t3.start()
 
-                times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
-                print("\tСледующее время для подведения статистики по загруженным фотографиям\t", times.timetoChangeCallCenter)
+                # Время для сбора статистики по загруженным фотографиям
+                newtime = times()
+                times.timetoGenerationStatUploadPhotos = newtime.nexttime("timetoGenerationStatUploadPhotos")
+                print("Следующее время для сбора статистики по звонкам\t", times.timetoGenerationStatUploadPhotos)
+
             except Exception as exception:
                 # Инициализация класса
                 error_message = class_send_erorr_message(argument, text, exception, botkey)
                 # Функция отправки сообщения в чат системному администратору
                 error_message.send_message()
 
-        # Время проверки прайс лист на обновление
-        case times.timetoScanUpdatePrise:
-            text = "Функция проверка прайс листа"
+        # Время проверки файлов на актуальность
+        case times.timetoScanUpdateFiles:
+            text = "Функция проверки файлов на актуальность"
             printer(times.timetoChangeCallCenter, text)
             try:
                 # Инициализация класса
-                x = class_check_price(argument)
+                x = class_checks(argument)
                 # Запускаем поток с функцией подсчёта статистики загруженных фотографий
                 x.start()
-                times.timetoScanUpdatePrise = datetime.time(23, 10).strftime("%H:%M")
-                print("\tСледующее время проверки прайс листа на обновление\t", times.timetoScanUpdatePrise)
+                # Время для проверки файлов на актуальность
+                newtime = times()
+                times.timetoScanUpdatePrise = newtime.nexttime("timetoScanUpdateFiles")
+                print("Cледующее время проверки файлов на актуальность\t", times.timetoGenerationStatUploadPhotos)
+
             except Exception as exception:
                 # Инициализация класса
                 error_message = class_send_erorr_message(argument, text, exception, botkey)
