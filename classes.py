@@ -26,7 +26,7 @@ class times:
     # Время сейчас
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
-    # Первоначальное время сканирования папок с фотографиями
+    # Время сканирования папок с фотографиями
     #timetoScan = today.time().strftime("%H:%M")
     timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
     # Время для работы изменения Call-центра
@@ -49,7 +49,7 @@ class times:
 
     def nexttime(self, argument):
         match(argument):
-
+            # Время сканирования папок с фотографиями
             case "TimeToScan":
                 nexthour = datetime.datetime.today().hour + 1
                 if nexthour == 24:
@@ -57,10 +57,12 @@ class times:
                 self.timetoScan = datetime.time(nexthour, 0).strftime("%H:%M")
                 return self.timetoScan
 
+            # Время для сбора статистики по звонкам
             case "timetoCollectionOfInformation":
                 times.timetoCollectionOfInformation = datetime.time(0, 5).strftime("%H:%M")
                 return times.timetoCollectionOfInformation
 
+            # Время для работы изменения Call-центра
             case "timetoChangeCallCenter":
                 nexthour = datetime.datetime.today().hour + 1
                 if nexthour == 24:
@@ -68,12 +70,14 @@ class times:
                 times.timetoChangeCallCenter = datetime.time(nexthour, 10).strftime("%H:%M")
                 return times.timetoChangeCallCenter
 
+            # Время сбора статистики по недельной работе прикрепления фотографий к карточкам товаров
             case "timetoGenerationStatUploadPhotos":
                 times.timetoGenerationStatUploadPhotos = datetime.time(2, 30).strftime("%H:%M")
                 return times.timetoGenerationStatUploadPhotos
 
+            # Время для проверки файлов на обновления
             case "timetoScanUpdateFiles":
-                times.timetoScanUpdateFiles = datetime.time(23, 10).strftime("%H:%M")
+                times.timetoScanUpdateFiles = datetime.time(4, 0).strftime("%H:%M")
                 return times.timetoScanUpdateFiles
 
             case _:
@@ -607,45 +611,6 @@ class class_photos(object):
                 except Exception:
                     print(f"Не удалить скопировать файл: {Exception}")
         print("=====================")
-        '''
-        # Путь к локальным папкам
-        pathtofolder = mainpath + str(numberfolder) + "/"
-
-        # Подключение к удалённому серверу по FTP
-        #ftp = FTP(ftpdates.nameSite)
-        #ftp.login(ftpdates.ftpLogin, ftpdates.ftpPass)
-        #ftppath = "/" + str(numberfolder) + "/"
-        #ftp.cwd(ftppath)
-
-        # Перебираем элементы
-        for element in tqdm(result):
-            if element == "Thumbs.db":
-                continue
-            else:
-                path = server2path + element + "/"
-                print(path)
-                #filesfolder = os.listdir(path)
-                print(element, "необходимо скопировать по пути: ", server2path, "\t\t", result)
-                print("=====================")
-                #for element in tqdm.tqdm(filesfolder):
-                #    print("\t\t\t", element)
-                    #if element != "Thumbs.db":
-                    #    fistfilepath = self.variables.pathfolderlocal + str(folder) + "/" + element
-                    #    # print("Откуда:", fistfilepath)
-                    #    secondfilepath = self.variables.pathsitefolderlocal + str(folder) + "/" + element.lower()
-                    #    # print("Куда:", secondfilepath)
-                    #    shutil.copyfile(fistfilepath, secondfilepath)
-                print("=====================")
-
-
-                time.sleep(1)
-                # file = open(element, "rb")
-                #with open(path, "rb") as file:
-                #    ftp.storbinary("STOR " + element, file)
-                #file.close()
-        print("Синхронизация папки ", numberfolder, " завершена.")
-        #ftp.quit()
-        '''
 
 # Класс работы с Call центре
 class class_call_center(object):

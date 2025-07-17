@@ -123,7 +123,7 @@ def switcher(argument):
                 # Время для проверки файлов на актуальность
                 newtime = times()
                 times.timetoScanUpdatePrise = newtime.nexttime("timetoScanUpdateFiles")
-                print("Cледующее время проверки файлов на актуальность\t", times.timetoGenerationStatUploadPhotos)
+                print("Cледующее время проверки файлов на актуальность\t", times.timetoScanUpdatePrise)
 
             except Exception as exception:
                 # Инициализация класса
