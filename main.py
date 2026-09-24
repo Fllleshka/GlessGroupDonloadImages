@@ -99,6 +99,7 @@ def switcher(argument):
                 # Запускаем поток с функцией подсчёта статистики загруженных фотографий
                 t3 = Thread(target=x.generationstatuploadphotos)
                 t3.start()
+                t3.join()
 
                 # Время для сбора статистики по загруженным фотографиям
                 newtime = times()

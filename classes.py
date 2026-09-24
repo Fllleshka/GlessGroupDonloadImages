@@ -27,8 +27,8 @@ class times:
     today = datetime.datetime.today()
     todaytime = today.strftime("%H:%M:%S")
     # Время сканирования папок с фотографиями
-    #timetoScan = today.time().strftime("%H:%M")
-    timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
+    timetoScan = today.time().strftime("%H:%M")
+    #timetoScan = (today + datetime.timedelta(minutes=15)).strftime("%H:%M")
     # Время для работы изменения Call-центра
     timetoChangeCallCenter = (today + datetime.timedelta(minutes=2)).strftime("%H:%M")
     # Время для сбора статистики по звонкам
@@ -44,8 +44,8 @@ class times:
     timetoScan_2_0 = datetime.time(3, 47).strftime("%H:%M")
     #timetoScan_2_0 = today.time().strftime("%H:%M")
     # Время для проверки файлов на обновления
-    timetoScanUpdateFiles = today.time().strftime("%H:%M")
-    #timetoScanUpdateFiles = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
+    #timetoScanUpdateFiles = today.time().strftime("%H:%M")
+    timetoScanUpdateFiles = (today + datetime.timedelta(minutes=1)).strftime("%H:%M")
 
     def nexttime(self, argument):
         match(argument):
@@ -176,10 +176,11 @@ class class_photos(object):
             newnumber = newstr - 1
             # Определяем время выполения операции
             today = datetime.datetime.today().strftime("%d.%m.%Y | %H:%M:%S")
-            # Добавляем строку в конец фаила логгирования
+            # Добавляем строку в конец файла логирования
             worksheet.update_cell(newstr, 1, newnumber)
             worksheet.update_cell(newstr, 2, today)
             worksheet.update_cell(newstr, 3, lenphotos)
+
         except:
             print("Логгирование фотографий сломалось(")
 
@@ -187,6 +188,7 @@ class class_photos(object):
     def statisticsphotos(self, pathimage, massnewphotos):
         sd = win32security.GetFileSecurity(pathimage, win32security.OWNER_SECURITY_INFORMATION)
         owner_sid = sd.GetSecurityDescriptorOwner()
+        print(str(owner_sid))
         match (str(owner_sid)):
             case masssotr.PySID_fleysner:
                 massnewphotos[0] += 1
@@ -196,8 +198,10 @@ class class_photos(object):
                 massnewphotos[2] += 1
             case masssotr.PySID_ivanov:
                 massnewphotos[3] += 1
-            case _:
+            case masssotr.PySID_chikirev:
                 massnewphotos[4] += 1
+            case _:
+                massnewphotos[5] += 1
         return massnewphotos
 
     # Функция получения размера изображения
@@ -267,6 +271,7 @@ class class_photos(object):
     # Функция записи статистики по загруженным фотографиям в GoogleDocs
     def updatedatesuploadphotos(self, massnewphotos):
         try:
+            print(f"massnewphotos: {massnewphotos}")
             # Подключаемся к сервисному аккаунту
             gc = gspread.service_account(CREDENTIALS_FILE)
             # Подключаемся к таблице по ключу таблицы
@@ -278,6 +283,7 @@ class class_photos(object):
                             int(worksheet.get_values(masssotr.CellTable_kireev)[0][0]),
                             int(worksheet.get_values(masssotr.CellTable_pushkar)[0][0]),
                             int(worksheet.get_values(masssotr.CellTable_ivanov)[0][0]),
+                            int(worksheet.get_values(masssotr.CellTable_chikirev)[0][0]),
                             int(worksheet.get_values(masssotr.CellTable_none)[0][0])]
 
             print(massolddates)
@@ -292,7 +298,8 @@ class class_photos(object):
             worksheet.update_acell(masssotr.CellTable_kireev, newmass[1])
             worksheet.update_acell(masssotr.CellTable_pushkar, newmass[2])
             worksheet.update_acell(masssotr.CellTable_ivanov, newmass[3])
-            worksheet.update_acell(masssotr.CellTable_none, newmass[4])
+            worksheet.update_acell(masssotr.CellTable_chikirev, newmass[4])
+            worksheet.update_acell(masssotr.CellTable_none, newmass[5])
 
         except Exception as e:
             print(f"Логгирование статистики фотографий сломалось: {e}")
@@ -300,7 +307,7 @@ class class_photos(object):
     # Функция сканирование папки для разбора фотографий
     def scanfolderwithimages(self):
         # Массив загруженных фотографий
-        massnewphotos = [0, 0, 0, 0, 0]
+        massnewphotos = [0, 0, 0, 0, 0, 0]
         # Получаем лист фаилов находящихся по адресу
         list = os.listdir(mainpathanalysis)
         # Проверка наличия фотографий
@@ -311,15 +318,16 @@ class class_photos(object):
         else:
             # Выясняем количество папок
             lenphotos = len(list)
-            # Логгирование фотографий
+            # Логирование фотографий
             self.createnewarrowinlogs(lenphotos)
+
             # Пробегаемся по элеметам
             for element in list:
                 # Обыгрывание Thumbs.db
                 if element == "Thumbs.db":
                     # Выясняем путь к этому фаилу
                     path = mainpathanalysis + "/" + element
-                    # Пытаемся удалить данный фаил
+                    # Пытаемся удалить данный файл
                     try:
                         if os.access(path, os.R_OK and os.X_OK):
                             os.remove(path)
@@ -328,7 +336,7 @@ class class_photos(object):
                         pass
                 # Если же это не файл Thumbs.db
                 else:
-                    # Выясняем путь к этому фаилу
+                    # Выясняем путь к этому файлу
                     pathfolder = mainpathanalysis + "/" + element
                     # Получаем данные о файлах по этому пути
                     nextlist = os.listdir(pathfolder)
@@ -343,7 +351,7 @@ class class_photos(object):
                             if elem == "Thumbs.db":
                                 continue
                             else:
-                                # Условие перебора количества фотографий, так как 6 папки нету
+                                # Условие перебора количества фотографий, так как 6 папки нет
                                 if numberfolder >= 6:
                                     break
                                 else:
@@ -442,7 +450,7 @@ class class_photos(object):
                     # Добавляем данные по результатам в массив
                     self.masslocalsize[numberfolder - 1].append(datesize)'''
 
-    # Функция сканирования удалённых папкок с фотографиями
+    # Функция сканирования удалённых папок с фотографиями
     def scanfilesinremoteserver(self):
         print(f"Начинаем сканирование данных из удалённых папок")
         # Инициализируем попытку сбора данных с удалённого сервера
@@ -527,7 +535,7 @@ class class_photos(object):
         print(f"Начинаем выборку разницы локальных(215) и удалённых(35) папок")
         for element in range(0, 5):
             result = list(set(self.masslocal[element]) - set(self.massremote[element]))
-            #print("Разница папки\t", element, "\t", len(result), "\t", result)
+            print("Разница папки\t", element, "\t", len(result), "\t", result)
             if result == []:
                 match element:
                     case 0:
@@ -616,7 +624,7 @@ class class_photos(object):
 class class_call_center(object):
 
     def __init__(self, argument):
-        # Приём веремени в класс
+        # Приём времени в класс
         self.date = argument
         # Приём данных по сотрудникам
         self.sotrud = allsotr
@@ -918,7 +926,7 @@ class class_call_center(object):
         massive = self.chosedates(datesnowmonth)
         # Активируем телефоны менеджеров
         result = self.selectmenegers(massive)
-        # Записываем изменения в таблицу логгирования
+        # Записываем изменения в таблицу логирования
         self.createnewarrowincallcenter()
 
 # Класс работы со сбором статистики по звонкам
@@ -1235,11 +1243,12 @@ class class_generation_stat_uploadphotos(object):
                 # Обнуляем значения, которые подсчитываются онлайн
                 for element in range(2, 7):
                     worksheet.update_cell(element, 8, 0)
-                # Записываем дату с коротой считаются фотографии
+                # Записываем дату с которой считаются фотографии
                 nulldate = today.strftime("%d %m %Y")
                 worksheet.update_cell(2, 9, nulldate)
-                text = f"\t Подсчёт загруженных фотографий навершён"
+                text = f"\t Подсчёт загруженных фотографий завершён"
                 print(text)
+                time.sleep(15)
                 return text
             # Иначе ничего не делаем
             else:
@@ -1247,7 +1256,7 @@ class class_generation_stat_uploadphotos(object):
                 print(text)
                 return text
         except Exception as e:
-            text = f"Логгирование статистики фотографий сломалось: {e}"
+            text = f"Логирование статистики фотографий сломалось: {e}"
             print(text)
 
 # Класс отправки сообщений от телеграмм бота
@@ -1291,15 +1300,13 @@ class class_checks(object):
         doublegis = '//SPEED-DEMON-II/wwwroot/files/2gisoutputinstock.yml'
         self.decisionmaking(doublegis)
 
-        # Функция выяснения последней модификации файла
-
     # Функция получения последней модификации файла
     def getlastmodifieddate(self, file_path):
-            try:
-                timestamp = os.stat(file_path).st_mtime
-                return datetime.datetime.fromtimestamp(timestamp)
-            except FileNotFoundError:
-                return None
+        try:
+            timestamp = os.stat(file_path).st_mtime
+            return datetime.datetime.fromtimestamp(timestamp)
+        except FileNotFoundError:
+            return None
 
     # Функция отправки сообщения и принятия решения
     def decisionmaking(self, pathfile):
