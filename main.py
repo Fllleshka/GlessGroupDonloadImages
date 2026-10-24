@@ -13,7 +13,7 @@ def switcher(argument):
                 # Инициализация класса
                 x = class_photos(argument, timetowaitingfunction)
                 # Запускаем поток с функцией разбора и синхронизации фотографий
-                t0 = Thread(target = x.startprocessing())
+                t0 = Thread(target = x.startprocessing)
                 t0.start()
 
                 # Вычисление следующего времени изменения Call центра
